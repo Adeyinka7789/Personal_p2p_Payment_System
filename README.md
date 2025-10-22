@@ -5,7 +5,8 @@ The Personal P2P Payment Service (PPPS) is a robust back-end application built w
 Project Overview
 
 Version: 1.0
-Objective: Create a secure, instant, and auditable platform for users to transfer funds directly to one another, prioritizing transactional integrity.
+Objective: Create a secure, instant, and auditable platform for users to transfer funds directly to one another, prioritizing transactional integrity
+
 Core Goal: Guarantee financial atomicity, ensuring debit and credit operations occur simultaneously with rollback capabilities if either fails.
 
 Key Features
