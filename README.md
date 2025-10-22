@@ -616,7 +616,8 @@ For issues, questions, or contributions:
 
 - **Issues**: [GitHub Issues](https://github.com/your-username/ppps/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-username/ppps/discussions)
-- **Email**: your-email@example.com
+- **Email**: Dotunm85@gmail.com
+- - **Phone**: +2347030834157
 
 ---
 
