@@ -1,181 +1,630 @@
-# Personal_p2p_Payment_System
-Personal P2P Payment Service (PPPS)
-💰 Secure, Auditable, and Atomic Peer-to-Peer Payments Platform
-The Personal P2P Payment Service (PPPS) is a robust back-end application built with Spring Boot, designed to facilitate secure and instant fund transfers between registered users. With a primary focus on financial integrity, PPPS leverages database-level transaction management, row-level locking, and a double-entry accounting ledger to ensure ACID compliance for every transaction.
-Project Overview
+# 💰 Personal P2P Payment Service (PPPS)
 
-Version: 1.0
-Objective: Create a secure, instant, and auditable platform for users to transfer funds directly to one another, prioritizing transactional integrity.
-Core Goal: Guarantee financial atomicity, ensuring debit and credit operations occur simultaneously with rollback capabilities if either fails.
+[![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-brightgreen?logo=springboot)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue?logo=postgresql)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7-red?logo=redis)](https://redis.io/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Key Features
+> **Secure, Auditable, and Atomic Peer-to-Peer Payments Platform**
 
+A production-ready Spring Boot application enabling instant fund transfers between users with guaranteed financial integrity through ACID-compliant transactions and double-entry bookkeeping.
 
+---
 
-Feature
-Description
-Technical Implementation
+## 📋 Table of Contents
 
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Running with Docker](#running-with-docker)
+- [API Documentation](#-api-documentation)
+- [Database Schema](#-database-schema)
+- [Security](#-security)
+- [Testing](#-testing)
+- [Contributing](#-contributing)
+- [License](#-license)
 
+---
 
-Atomic P2P Transfer
-Instant transfer of funds between users using the receiver's phone number and sender's secure PIN.
-Encapsulated within @Transactional with SELECT FOR UPDATE for row-level locking.
+## ✨ Features
 
+### 🔐 **Financial Integrity**
+- **ACID-Compliant Transactions**: Every transfer is atomic - either fully succeeds or completely rolls back
+- **Row-Level Locking**: PostgreSQL `SELECT FOR UPDATE` prevents concurrent overdrafts
+- **Optimistic Locking**: JPA `@Version` for conflict detection
+- **Double-Entry Bookkeeping**: Immutable ledger entries for complete audit trail
 
-Financial Integrity
-Ensures funds are never lost or duplicated, treating all debit/credit operations as a single atomic unit.
-PostgreSQL transactions and JPA concurrency controls (@Version).
+### 💸 **Core Functionality**
+- ✅ **Instant P2P Transfers**: Send money using receiver's phone number
+- ✅ **Secure PIN Authentication**: Bcrypt-hashed PIN for transaction authorization
+- ✅ **Real-time Balance Queries**: Check wallet balance instantly
+- ✅ **Transaction History**: Paginated, filterable transaction logs with search
+- ✅ **Funding System**: Test endpoint for wallet deposits
 
+### 🛡️ **Security & Performance**
+- 🔒 **JWT Authentication**: Stateless authentication with secure token validation
+- 🚦 **Rate Limiting**: IP-based request throttling (100 req/min per IP)
+- ⚡ **Redis Caching**: Fast session management and rate limit counters
+- 📊 **Prometheus Metrics**: Production-ready monitoring and observability
 
-Auditability
-Provides an immutable record of all financial movements.
-Double-entry accounting using Wallet and LedgerEntry entities.
+---
 
+## 🏗️ Architecture
 
-Security
-Protects user accounts and transaction requests.
-Spring Security, JWT for stateless authentication, and Bcrypt for PIN hashing.
+### **Atomic Transfer Flow**
 
+```
+┌─────────────┐
+│   Client    │
+└──────┬──────┘
+       │ POST /api/v1/transfers
+       ▼
+┌─────────────────────────────┐
+│   TransferController        │
+│  (JWT Authentication)       │
+└──────────┬──────────────────┘
+           │
+           ▼
+┌─────────────────────────────┐
+│    TransferService          │
+│  @Transactional             │
+├─────────────────────────────┤
+│ 1. Lock Sender Wallet       │◄───── SELECT FOR UPDATE
+│ 2. Verify Balance           │
+│ 3. Verify PIN               │
+│ 4. Lock Receiver Wallet     │
+│ 5. Debit Sender             │
+│ 6. Credit Receiver          │
+│ 7. Create Transaction       │
+│ 8. Log to Ledger (2x)       │
+│ 9. Commit / Rollback        │
+└──────────┬──────────────────┘
+           │
+           ▼
+┌─────────────────────────────┐
+│   PostgreSQL Database       │
+│  - Wallets                  │
+│  - Transactions             │
+│  - Ledger Entries           │
+│  - Users                    │
+└─────────────────────────────┘
+```
 
-Rate Limiting
-Prevents abuse and ensures system stability.
-Custom filter integrated into the Spring Security chain, leveraging Redis for counts.
+### **System Components**
 
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│              │     │              │     │              │
+│  API Layer   │────▶│  Service     │────▶│  Repository  │
+│  (REST)      │     │  Layer       │     │  (JPA)       │
+│              │     │              │     │              │
+└──────────────┘     └──────────────┘     └──────────────┘
+       │                    │                     │
+       │                    │                     │
+       ▼                    ▼                     ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Security     │     │ Transaction  │     │ PostgreSQL   │
+│ Filter Chain │     │ Management   │     │ Database     │
+└──────────────┘     └──────────────┘     └──────────────┘
+       │                                          
+       ▼                                          
+┌──────────────┐                          ┌──────────────┐
+│ Rate Limit   │                          │   Redis      │
+│ Filter       │─────────────────────────▶│   Cache      │
+└──────────────┘                          └──────────────┘
+```
 
-Technical Stack
+---
 
-Backend Framework: Java 21, Spring Boot 3+
-API Design: RESTful API (application/json)
-Database: PostgreSQL (Primary persistence layer for transactional data)
-Caching/Messaging: Redis (Used for caching session data, rate limiting counts, or potentially message queuing)
-Security: Spring Security, JWT, Bcrypt
-Build Tool: Maven
+## 🛠️ Tech Stack
 
-Financial Integrity: The Atomic Transfer Flow
-🚀 The core value of PPPS lies in its ability to execute transfers with guaranteed Atomicity, Consistency, Isolation, and Durability (ACID). This is achieved through a precise sequence within the TransferService:
+| Category | Technology | Version |
+|----------|-----------|---------|
+| **Language** | Java | 21 |
+| **Framework** | Spring Boot | 3.5.6 |
+| **Security** | Spring Security + JWT | 6.x |
+| **Database** | PostgreSQL | 15+ |
+| **Cache** | Redis | 7+ |
+| **ORM** | Spring Data JPA (Hibernate) | 6.6.x |
+| **Build Tool** | Maven | 3.9+ |
+| **Container** | Docker + Docker Compose | Latest |
+| **Monitoring** | Micrometer + Prometheus | Latest |
+| **Documentation** | SpringDoc OpenAPI | 2.6.0 |
 
-Row Locking: Locks the sender's Wallet using SELECT FOR UPDATE to prevent concurrent overdrafts.
-Overdraft Check: Validates Sender Balance >= Amount.
-Debit/Credit: Updates the balances of the sender and receiver wallets.
-Ledger Logging: Creates two immutable LedgerEntry records (Debit and Credit) for auditable history.
-Commit/Rollback: Commits the transaction if all steps succeed (status: SUCCESS). Rolls back to the starting state if any step fails (e.g., connection error, overdraft).
+---
 
-Getting Started
-Prerequisites
+## 🚀 Getting Started
 
-Docker
-Docker Compose
-Java 21+
-Maven
+### Prerequisites
 
-Installation
+Ensure you have the following installed:
 
-Environment Setup
+- **Java 21+** ([Download](https://adoptium.net/))
+- **Maven 3.9+** ([Download](https://maven.apache.org/download.cgi))
+- **Docker & Docker Compose** ([Download](https://www.docker.com/get-started))
+- **Git** ([Download](https://git-scm.com/downloads))
 
-Clone the repository:git clone https://github.com/your-username/ppps.git
+### Installation
+
+#### 1️⃣ **Clone the Repository**
+
+```bash
+git clone https://github.com/your-username/ppps.git
 cd ppps
+```
 
+#### 2️⃣ **Configure Environment**
 
-Configure environment variables in .env:POSTGRES_DB=ppps_db
+Create a `.env` file in the project root:
+
+```env
+# Database Configuration
+POSTGRES_DB=ppps_db
 POSTGRES_USER=ppps_user
 POSTGRES_PASSWORD=local_test_password
 
+# Redis Configuration
+REDIS_PASSWORD=
 
-Start PostgreSQL and Redis services:docker-compose up -d
+# Application Configuration
+JWT_SECRET=your-secret-key-change-in-production
+CONVERSION_MARGIN=0.005
+```
 
+#### 3️⃣ **Start Infrastructure Services**
 
-Verify services are running:docker ps
+```bash
+docker-compose up -d
+```
 
-Ensure ppps-redis-1 and ppps-ppps-db-1 are active.
+Verify services are running:
+```bash
+docker ps
+```
 
+You should see:
+- `ppps-postgres` (PostgreSQL on port 5432)
+- `ppps-redis` (Redis on port 6379)
 
-Spring Boot Application
+#### 4️⃣ **Build the Application**
 
-Ensure database and Redis properties in src/main/resources/application.properties match the Docker configuration:spring.datasource.url=jdbc:postgresql://localhost:5432/ppps_db
-spring.datasource.username=ppps_user
-spring.datasource.password=local_test_password
-spring.redis.host=localhost
-spring.redis.port=6379
+```bash
+mvn clean package -DskipTests
+```
 
+#### 5️⃣ **Run the Application**
 
-Build and run the application:mvn clean package
+```bash
 java -jar target/ppps-0.0.1-SNAPSHOT.jar
+```
 
+Or with Maven:
+```bash
+mvn spring-boot:run
+```
 
+The application will start on **http://localhost:8080**
 
+---
 
+### Running with Docker
 
-API Endpoints (Quick Reference)
+**Option 1: Docker Compose (Recommended)**
 
+```bash
+# Start all services (app + database + redis)
+docker-compose up -d
 
+# View logs
+docker-compose logs -f
 
-Category
-Method
-Path
-Description
-Authentication
+# Stop services
+docker-compose down
+```
 
+**Option 2: Manual Docker Build**
 
+```bash
+# Build the Docker image
+docker build -t ppps:latest .
 
-Authentication
-POST
-/api/v1/register
-Create a new user and provision a wallet.
-None
+# Run the container
+docker run -d \
+  --name ppps-app \
+  -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/ppps_db \
+  -e SPRING_DATASOURCE_USERNAME=ppps_user \
+  -e SPRING_DATASOURCE_PASSWORD=local_test_password \
+  ppps:latest
+```
 
+---
 
-Authentication
-POST
-/api/v1/auth/login
-Authenticate and receive a JWT.
-None
+## 📚 API Documentation
 
+### Base URL
+```
+http://localhost:8080/api/v1
+```
 
-Transfer
-POST
-/api/v1/transfers
-Initiate a P2P fund transfer (requires PIN).
-JWT Required
+### **Authentication Endpoints**
 
+#### 1. Register New User
+```http
+POST /api/v1/register
+Content-Type: application/json
 
-Balance
-GET
-/api/v1/balance/{walletId}
-Check the current wallet balance.
-JWT Required
+{
+  "phoneNumber": "+2349000000001",
+  "pin": "123456"
+}
+```
 
+**Response:**
+```json
+{
+  "userId": "uuid-here",
+  "phoneNumber": "+2349000000001",
+  "walletId": "wallet-uuid-here",
+  "balance": 0.00,
+  "message": "User registered successfully"
+}
+```
 
-Funding
-POST
-/api/v1/funding/deposit
-Test endpoint to deposit funds into a wallet.
-JWT Required
+#### 2. Login
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
 
+{
+  "phoneNumber": "+2349000000001",
+  "pin": "123456"
+}
+```
 
+**Response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresIn": 86400000
+}
+```
 
-Test connectivity with http://localhost:8080/actuator/health.
+---
 
-Architecture Diagram
-View the PPPS Architecture Diagram for a detailed visualization of the atomic transfer flow.
-Data Modeling (PostgreSQL)
+### **Transfer Endpoints** 🔐 *Requires JWT*
 
-Wallet Entity: id (UUID, PK), userId (UUID, FK to User), balance (BigDecimal, ≥ 0), currency (String, default NGN), version (Long for optimistic locking).
-Transaction Entity: id (UUID, PK), senderWalletId (UUID, FK to Wallet), receiverWalletId (UUID, FK to Wallet), amount (BigDecimal), status (Enum: PENDING, SUCCESS, FAILED), initiatedAt (Instant).
-LedgerEntry Entity: id (UUID, PK), transactionId (UUID, FK to Transaction), walletId (UUID, FK to Wallet), entryType (Enum: DEBIT/CREDIT), amount (BigDecimal), createdAt (Instant).
+#### 3. Execute P2P Transfer
+```http
+POST /api/v1/transfers
+Authorization: Bearer {jwt_token}
+Content-Type: application/json
 
-Contributing
-🤝 We welcome contributions to enhance PPPS! Please follow these steps:
+{
+  "receiverPhoneNumber": "+2349000000002",
+  "amount": 5000.00,
+  "securePin": "123456",
+  "narration": "Payment for services"
+}
+```
 
-Fork the repository.
-Create a feature branch (git checkout -b feature-name).
-Commit changes (git commit -m "Add feature-name").
-Push to the branch (git push origin feature-name).
-Open a pull request, ensuring all contributions maintain financial integrity and ACID compliance.
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Transfer completed successfully",
+  "transactionId": "uuid-here"
+}
+```
 
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
-Acknowledgments
+---
 
-Inspired by the need for secure P2P payments in local markets.
-Developed with guidance from the TDAD and PRD documents.
+### **Wallet Endpoints** 🔐 *Requires JWT*
+
+#### 4. Check Balance
+```http
+GET /api/v1/balance/{walletId}
+Authorization: Bearer {jwt_token}
+```
+
+**Response:**
+```json
+{
+  "walletId": "uuid-here",
+  "balance": 15000.00,
+  "currency": "NGN"
+}
+```
+
+#### 5. Get Transaction History
+```http
+GET /api/v1/transactions/{walletId}?pageNumber=0&pageSize=10
+Authorization: Bearer {jwt_token}
+```
+
+**Response:**
+```json
+{
+  "transactions": [
+    {
+      "transactionId": "uuid-here",
+      "senderWalletId": "uuid",
+      "receiverWalletId": "uuid",
+      "amount": 5000.00,
+      "status": "SUCCESS",
+      "initiatedAt": "2025-10-22T00:00:00Z"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalPages": 5
+}
+```
+
+---
+
+### **Interactive API Documentation**
+
+Access Swagger UI at:
+```
+http://localhost:8080/swagger-ui.html
+```
+
+---
+
+## 🗄️ Database Schema
+
+### **Entity Relationship Diagram**
+
+```
+┌─────────────────┐       ┌─────────────────┐
+│      User       │       │     Wallet      │
+├─────────────────┤       ├─────────────────┤
+│ userId (PK)     │──────▶│ id (PK)         │
+│ phoneNumber     │   1:1 │ userId (FK)     │
+│ hashedPin       │       │ balance         │
+│ wallet_id (FK)  │       │ currency        │
+└─────────────────┘       │ version         │
+                          └─────────────────┘
+                                  │
+                                  │ 1:M
+                                  ▼
+                          ┌─────────────────┐
+                          │  Transaction    │
+                          ├─────────────────┤
+                          │ id (PK)         │
+                          │ senderWalletId  │
+                          │ receiverWalletId│
+                          │ amount          │
+                          │ status          │
+                          │ initiatedAt     │
+                          └─────────────────┘
+                                  │
+                                  │ 1:2
+                                  ▼
+                          ┌─────────────────┐
+                          │  LedgerEntry    │
+                          ├─────────────────┤
+                          │ id (PK)         │
+                          │ transactionId   │
+                          │ walletId        │
+                          │ entryType       │
+                          │ amount          │
+                          │ createdAt       │
+                          └─────────────────┘
+```
+
+### **Key Tables**
+
+#### **users**
+| Column | Type | Constraints |
+|--------|------|-------------|
+| user_id | VARCHAR(36) | PRIMARY KEY |
+| phone_number | VARCHAR(20) | UNIQUE, NOT NULL |
+| hashed_pin | VARCHAR(255) | NOT NULL |
+| wallet_id | UUID | FOREIGN KEY |
+
+#### **wallets**
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | UUID | PRIMARY KEY |
+| user_id | UUID | NOT NULL, INDEX |
+| balance | DECIMAL(19,2) | NOT NULL, ≥ 0 |
+| currency | VARCHAR(3) | DEFAULT 'NGN' |
+| version | BIGINT | OPTIMISTIC LOCK |
+
+#### **transactions**
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | UUID | PRIMARY KEY |
+| sender_wallet_id | UUID | FOREIGN KEY |
+| receiver_wallet_id | UUID | FOREIGN KEY |
+| amount | DECIMAL(19,2) | NOT NULL |
+| status | ENUM | PENDING/SUCCESS/FAILED |
+| initiated_at | TIMESTAMP | NOT NULL |
+
+#### **ledger_entries**
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | UUID | PRIMARY KEY |
+| transaction_id | UUID | FOREIGN KEY |
+| wallet_id | UUID | FOREIGN KEY |
+| entry_type | ENUM | DEBIT/CREDIT |
+| amount | DECIMAL(19,2) | NOT NULL |
+| created_at | TIMESTAMP | NOT NULL |
+
+---
+
+## 🔒 Security
+
+### **Authentication Flow**
+
+1. User registers with phone number and PIN
+2. PIN is hashed using Bcrypt (cost factor: 10)
+3. User logs in to receive JWT token
+4. JWT contains user ID and expiration (24 hours)
+5. All protected endpoints require `Authorization: Bearer {token}` header
+
+### **Security Features**
+
+- ✅ **JWT Stateless Authentication**
+- ✅ **Bcrypt Password Hashing**
+- ✅ **CSRF Protection Disabled** (API-only, token-based auth)
+- ✅ **Rate Limiting** (100 requests/minute per IP)
+- ✅ **SQL Injection Protection** (JPA Parameterized Queries)
+- ✅ **XSS Protection** (JSON responses only)
+
+### **Environment Variables (Production)**
+
+```env
+# Use strong secrets in production!
+JWT_SECRET=change-this-to-a-very-long-random-secret-minimum-256-bits
+JWT_EXPIRATION=86400000
+
+# Database
+SPRING_DATASOURCE_URL=jdbc:postgresql://prod-db:5432/ppps_db
+SPRING_DATASOURCE_USERNAME=ppps_prod_user
+SPRING_DATASOURCE_PASSWORD=very-secure-password-here
+
+# Redis
+SPRING_REDIS_HOST=prod-redis
+SPRING_REDIS_PORT=6379
+SPRING_REDIS_PASSWORD=redis-secure-password
+```
+
+---
+
+## 🧪 Testing
+
+### **Run Unit Tests**
+
+```bash
+mvn test
+```
+
+### **Run Integration Tests**
+
+```bash
+mvn verify
+```
+
+### **Test Coverage Report**
+
+```bash
+mvn clean test jacoco:report
+```
+
+View report at: `target/site/jacoco/index.html`
+
+### **Manual Testing with cURL**
+
+**1. Register User**
+```bash
+curl -X POST http://localhost:8080/api/v1/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "+2349000000001",
+    "pin": "123456"
+  }'
+```
+
+**2. Login**
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "+2349000000001",
+    "pin": "123456"
+  }'
+```
+
+**3. Transfer Money**
+```bash
+curl -X POST http://localhost:8080/api/v1/transfers \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "receiverPhoneNumber": "+2349000000002",
+    "amount": 1000.00,
+    "securePin": "123456",
+    "narration": "Test transfer"
+  }'
+```
+
+---
+
+## 📊 Monitoring
+
+### **Health Check**
+```bash
+curl http://localhost:8080/actuator/health
+```
+
+### **Prometheus Metrics**
+```bash
+curl http://localhost:8080/actuator/prometheus
+```
+
+### **Application Metrics**
+- Total transfers executed
+- Transfer success/failure rate
+- Average transfer duration
+- Active user count
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Commit** your changes: `git commit -m 'Add amazing feature'`
+4. **Push** to the branch: `git push origin feature/amazing-feature`
+5. **Open** a Pull Request
+
+### **Code Standards**
+
+- Follow Java code conventions
+- Write unit tests for new features
+- Maintain financial integrity in all transaction logic
+- Document public APIs with JavaDoc
+
+---
+
+## 📝 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with [Spring Boot](https://spring.io/projects/spring-boot)
+- Inspired by real-world P2P payment systems
+- Developed with focus on financial integrity and security
+
+---
+
+## 📞 Support
+
+For issues, questions, or contributions:
+
+- **Issues**: [GitHub Issues](https://github.com/your-username/ppps/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-username/ppps/discussions)
+- **Email**: Dotunm85@gmail.com
+- - **Phone**: +2347030834157
+
+---
+
+<div align="center">
+
+**Made with ❤️ for secure financial transactions**
+
+⭐ **Star this repo if you find it useful!** ⭐
+
+</div>
