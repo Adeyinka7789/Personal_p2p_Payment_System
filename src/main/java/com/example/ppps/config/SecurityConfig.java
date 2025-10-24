@@ -34,11 +34,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/login").permitAll()
 
                         // Secured Endpoints - Require a valid JWT for all financial operations
-                        .requestMatchers("/api/v1/funding",         // Funding (Deposit)
-                                "/api/v1/transfers",                 // P2P Transfer (FR1.3)
-                                "/api/v1/balance/**",                // Balance Inquiry (FR1.5)
-                                "/api/v1/transactions/**",           // Transaction History (FR1.4)
-                                "/api/v1/reset-pin/**").authenticated() // PIN Reset/Change
+                        .requestMatchers(
+                                "/api/v1/funding",          // Deposit
+                                "/api/v1/withdrawals",       // Withdrawal (NEW)
+                                "/api/v1/transfers",        // P2P Transfer (FR1.3)
+                                "/api/v1/balance/**",       // Balance Inquiry (FR1.5)
+                                "/api/v1/transactions/**",  // Transaction History (FR1.4)
+                                "/api/v1/reset-pin/**"      // PIN Reset/Change
+                        ).authenticated()
 
                         // Fallback: Any other request must also be authenticated
                         .anyRequest().authenticated()

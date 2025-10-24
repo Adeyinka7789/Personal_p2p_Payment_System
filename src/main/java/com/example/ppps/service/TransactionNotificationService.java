@@ -1,6 +1,7 @@
 package com.example.ppps.service;
 
 import com.example.ppps.event.TransactionCompletedEvent;
+import com.example.ppps.event.WithdrawalCompletedEvent;
 import com.example.ppps.config.KafkaTopics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -30,5 +31,23 @@ public class TransactionNotificationService {
     private void sendEmail(TransactionCompletedEvent event) {
         // Integrate with email service (SendGrid, etc.)
         log.info("Sending Email for transaction: {}", event.getTransactionId());
+    }
+
+    @KafkaListener(topics = KafkaTopics.WITHDRAWAL_COMPLETED, groupId = "notification-service")
+    public void handleWithdrawalEvent(WithdrawalCompletedEvent event) {
+        log.info("📩 Notification Service received WithdrawalCompletedEvent: {}", event);
+
+        sendSms(event);
+        sendEmail(event);
+    }
+
+    private void sendSms(WithdrawalCompletedEvent event) {
+        log.info("📲 Sending SMS for withdrawal of {} to account {} ({})",
+                event.getAmount(), event.getAccountNumber(), event.getBankName());
+    }
+
+    private void sendEmail(WithdrawalCompletedEvent event) {
+        log.info("📧 Sending Email confirmation for withdrawal {} to {} ({})",
+                event.getTransactionId(), event.getBankName(), event.getAccountNumber());
     }
 }

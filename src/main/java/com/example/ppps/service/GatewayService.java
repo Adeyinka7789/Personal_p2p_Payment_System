@@ -57,6 +57,38 @@ public class GatewayService {
         }
     }
 
+    // inside com.example.ppps.service.GatewayService (add method to existing class)
+    @Retry(name = SERVICE_NAME)
+    @CircuitBreaker(name = SERVICE_NAME, fallbackMethod = "fallbackWithdrawalResponse")
+    public GatewayResponse processWithdrawal(GatewayRequest request) {
+        String correlationId = MDC.get("correlationId");
+        long start = System.nanoTime();
+        log.info("[{}] 🌍 Initiating gateway withdrawal for transaction {}", correlationId, request.getTransactionId());
+
+        try {
+            Thread.sleep(1000);
+
+            // simulate random failure
+            if (random.nextInt(10) < 2) {
+                throw new GatewayException("Simulated gateway withdrawal failure");
+            }
+
+            String reference = UUID.randomUUID().toString();
+            long durationMs = (System.nanoTime() - start) / 1_000_000;
+            log.info("[{}] ✅ Gateway WITHDRAWAL SUCCESS - Ref={} | Duration={}ms", correlationId, reference, durationMs);
+
+            return GatewayResponse.builder()
+                    .status("SUCCESS")
+                    .gatewayReference(reference)
+                    .message("Withdrawal processed successfully (simulated)")
+                    .build();
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new GatewayException("Gateway withdrawal interrupted");
+        }
+    }
+
     // 🔄 Fallback in case of failure
     public GatewayResponse fallbackResponse(GatewayRequest request, Throwable throwable) {
         String correlationId = MDC.get("correlationId");
