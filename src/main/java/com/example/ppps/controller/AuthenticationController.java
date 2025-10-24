@@ -16,6 +16,7 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public AuthenticationResponse login(@RequestBody AuthenticationRequest request) {
-        return authenticationService.authenticate(request.getUserId(), request.getPin());
+        // FIX: Now calling authenticate with phoneNumber, not userId.
+        return authenticationService.authenticate(request.getPhoneNumber(), request.getPin());
     }
 }

@@ -12,6 +12,7 @@ import java.util.UUID;
 @Data
 @Table(name = "ledger_entries")
 public class LedgerEntry {
+
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
@@ -32,4 +33,18 @@ public class LedgerEntry {
     private BigDecimal amount;
 
     private Instant createdAt;
+
+    // ✅ Default constructor for JPA
+    public LedgerEntry() {}
+
+    // ✅ Custom constructor for convenient instantiation
+    public LedgerEntry(UUID id, BigDecimal amount, Instant createdAt,
+                       EntryType entryType, UUID transactionId, UUID walletId) {
+        this.id = id;
+        this.amount = amount;
+        this.createdAt = createdAt;
+        this.entryType = entryType;
+        this.transactionId = transactionId;
+        this.walletId = walletId;
+    }
 }

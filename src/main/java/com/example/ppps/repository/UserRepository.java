@@ -8,5 +8,6 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findById(String userId);
 
-    Optional<Object> findByPhoneNumber(String phoneNumber);
+    // FIX APPLIED HERE: Changed Optional<Object> to Optional<User>
+    Optional<User> findByPhoneNumber(String phoneNumber);
 }

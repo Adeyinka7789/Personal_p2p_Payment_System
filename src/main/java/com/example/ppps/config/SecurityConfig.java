@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 
 @Configuration
 @EnableWebSecurity
@@ -23,20 +24,30 @@ public class SecurityConfig {
                                                    RateLimitingFilter rateLimitingFilter,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())  // NEW API - not deprecated
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Public Endpoint 1: Registration (FR1.1)
                         .requestMatchers("/api/v1/register").permitAll()
-                        // NEW FIX: Allow access to the funding endpoint for deposits
-                        .requestMatchers("/api/v1/funding/**").authenticated()
-                        // FIX: Changed singular "/api/v1/transfer" to plural "/api/v1/transfers"
-                        .requestMatchers("/api/v1/transfers", "/api/v1/balance/**",
-                                "/api/v1/transactions/**", "/api/v1/reset-pin/**").authenticated()
-                        .anyRequest().denyAll()
+
+                        // Public Endpoint 2: The standard Login path
+                        .requestMatchers("/api/v1/auth/login").permitAll()
+
+                        // Secured Endpoints - Require a valid JWT for all financial operations
+                        .requestMatchers("/api/v1/funding",         // Funding (Deposit)
+                                "/api/v1/transfers",                 // P2P Transfer (FR1.3)
+                                "/api/v1/balance/**",                // Balance Inquiry (FR1.5)
+                                "/api/v1/transactions/**",           // Transaction History (FR1.4)
+                                "/api/v1/reset-pin/**").authenticated() // PIN Reset/Change
+
+                        // Fallback: Any other request must also be authenticated
+                        .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class);
+                // The Rate Limiting Filter runs first to protect against floods on any endpoint
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+                // The JWT Filter runs second to establish the user's identity
+                .addFilterBefore(jwtAuthenticationFilter, RateLimitingFilter.class);
+
 
         return http.build();
     }

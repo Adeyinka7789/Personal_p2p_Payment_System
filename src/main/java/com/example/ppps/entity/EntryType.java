@@ -2,5 +2,6 @@ package com.example.ppps.entity;
 
 public enum EntryType {
     DEBIT,
-    CREDIT
+    CREDIT,
+    FEE_REVENUE
 }

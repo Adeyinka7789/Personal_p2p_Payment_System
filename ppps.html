@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayFlow - P2P Payment Platform</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #1f2937;
+            --gray: #6b7280;
+            --light-gray: #f3f4f6;
+            --white: #ffffff;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            background: var(--light-gray);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: var(--white);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--white);
+        }
+
+        .btn-secondary:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: var(--white);
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.875rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: var(--white);
+            cursor: pointer;
+        }
+
+        /* Balance Card */
+        .balance-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 2rem;
+        }
+
+        .balance-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .balance-amount {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+        }
+
+        .balance-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Transaction List */
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.3s;
+        }
+
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+
+        .transaction-item:hover {
+            background: var(--light-gray);
+        }
+
+        .transaction-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .transaction-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .transaction-icon.credit {
+            background: #d1fae5;
+            color: var(--secondary);
+        }
+
+        .transaction-icon.debit {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .transaction-details h4 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .transaction-details p {
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        .transaction-amount {
+            font-weight: 700;
+            font-size: 1.125rem;
+        }
+
+        .transaction-amount.credit {
+            color: var(--secondary);
+        }
+
+        .transaction-amount.debit {
+            color: var(--danger);
+        }
+
+        /* Status Badge */
+        .badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: var(--secondary);
+        }
+
+        .badge-pending {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+
+        .badge-failed {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        /* Alert */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e3a8a;
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Auth Pages */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .auth-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 3rem;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-logo h1 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-logo p {
+            color: var(--gray);
+        }
+
+        .auth-links {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--gray);
+        }
+
+        .auth-links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .quick-action {
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+        }
+
+        .quick-action:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .quick-action-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .quick-action-label {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .mt-2 { margin-top: 1rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .hidden { display: none; }
+        .flex { display: flex; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .gap-1 { gap: 0.5rem; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .balance-amount {
+                font-size: 2rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .balance-actions {
+                flex-direction: column;
+            }
+
+            .quick-actions {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar hidden" id="navbar">
+    <div class="navbar-container">
+        <div class="logo">
+            💳 PayFlow
+        </div>
+        <div class="nav-links">
+            <a href="#" onclick="showPage('dashboard')">Dashboard</a>
+            <a href="#" onclick="showPage('transactions')">Transactions</a>
+            <a href="#" onclick="showPage('profile')">Profile</a>
+            <button class="btn btn-danger" onclick="logout()">Logout</button>
+        </div>
+    </div>
+</nav>
+
+<div class="auth-container" id="loginPage">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <h1>💳 PayFlow</h1>
+            <p>Welcome back! Please login to your account</p>
+        </div>
+
+        <div id="loginAlert"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-input" id="loginEmail"
+                       placeholder="Enter your email" required value="user@example.com">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-input" id="loginPassword"
+                       placeholder="Enter your password" required value="password123">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%">
+                Login
+            </button>
+        </form>
+
+        <div class="auth-links">
+            Don't have an account?
+            <a href="#" onclick="showPage('register')">Register here</a>
+        </div>
+    </div>
+</div>
+
+<div class="auth-container hidden" id="registerPage">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <h1>💳 PayFlow</h1>
+            <p>Create your account to get started</p>
+        </div>
+
+        <div id="registerAlert"></div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-input" id="registerName"
+                       placeholder="Enter your full name" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-input" id="registerEmail"
+                       placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-input" id="registerPassword"
+                       placeholder="Create a password" required minlength="6">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Confirm Password</label>
+                <input type="password" class="form-input" id="registerConfirmPassword"
+                       placeholder="Confirm your password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%">
+                Create Account
+            </button>
+        </form>
+
+        <div class="auth-links">
+            Already have an account?
+            <a href="#" onclick="showPage('login')">Login here</a>
+        </div>
+    </div>
+</div>
+
+<div class="hidden" id="dashboardPage">
+    <div class="container">
+        <div class="balance-card">
+            <div class="balance-label">Available Balance</div>
+            <div class="balance-amount" id="userBalance">₦0.00</div>
+            <div class="balance-actions">
+                <button class="btn btn-secondary" onclick="openModal('fundModal')">
+                    💰 Fund Wallet
+                </button>
+                <button class="btn" style="background: white; color: var(--primary)"
+                        onclick="openModal('transferModal')">
+                    📤 Send Money
+                </button>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <div class="quick-action" onclick="openModal('fundModal')">
+                <div class="quick-action-icon">💰</div>
+                <div class="quick-action-label">Fund</div>
+            </div>
+            <div class="quick-action" onclick="openModal('transferModal')">
+                <div class="quick-action-icon">📤</div>
+                <div class="quick-action-label">Send</div>
+            </div>
+            <div class="quick-action" onclick="showPage('transactions')">
+                <div class="quick-action-icon">📊</div>
+                <div class="quick-action-label">History</div>
+            </div>
+            <div class="quick-action" onclick="showPage('profile')">
+                <div class="quick-action-icon">👤</div>
+                <div class="quick-action-label">Profile</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Recent Transactions</h2>
+            </div>
+            <div id="recentTransactions">
+                <p class="text-center" style="color: var(--gray); padding: 2rem;">
+                    No transactions yet. Start by funding your wallet!
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="hidden" id="transactionsPage">
+    <div class="container">
+        <div class="card">
+            <div class="card-header flex-between">
+                <h2 class="card-title">All Transactions</h2>
+                <button class="btn btn-outline" onclick="loadTransactions()">
+                    🔄 Refresh
+                </button>
+            </div>
+            <div id="allTransactions">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="hidden" id="profilePage">
+    <div class="container">
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Profile Information</h2>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-input" id="profileName" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="profileEmail" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Account Number</label>
+                    <input type="text" class="form-input" id="profileAccountNumber" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Member Since</label>
+                    <input type="text" class="form-input" id="profileMemberSince" readonly>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Account Statistics</h2>
+                </div>
+                <div style="padding: 1rem 0;">
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="color: var(--gray); margin-bottom: 0.5rem;">Total Transactions</div>
+                        <div style="font-size: 2rem; font-weight: 700;" id="totalTransactions">0</div>
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="color: var(--gray); margin-bottom: 0.5rem;">Total Received</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary);" id="totalReceived">₦0.00</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--gray); margin-bottom: 0.5rem;">Total Sent</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);" id="totalSent">₦0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="fundModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="card-title">Fund Wallet</h2>
+            <button class="modal-close" onclick="closeModal('fundModal')">&times;</button>
+        </div>
+
+        <form id="fundForm">
+            <div class="form-group">
+                <label class="form-label">Amount (₦)</label>
+                <input type="number" class="form-input" id="fundAmount"
+                       placeholder="Enter amount" min="100" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Payment Gateway</label>
+                <select class="form-select" id="fundGateway" required>
+                    <option value="PAYSTACK">Paystack</option>
+                    <option value="FLUTTERWAVE">Flutterwave</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%">
+                Continue to Payment
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="modal" id="transferModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="card-title">Send Money</h2>
+            <button class="modal-close" onclick="closeModal('transferModal')">&times;</button>
+        </div>
+
+        <form id="transferForm">
+            <div class="form-group">
+                <label class="form-label">Recipient Email or Account Number</label>
+                <input type="text" class="form-input" id="transferRecipient"
+                       placeholder="Enter recipient details" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Amount (₦)</label>
+                <input type="number" class="form-input" id="transferAmount"
+                       placeholder="Enter amount" min="1" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description (Optional)</label>
+                <input type="text" class="form-input" id="transferDescription"
+                       placeholder="What's this for?">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%">
+                Send Money
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Application State
+    const state = {
+        user: null,
+        token: null,
+        apiUrl: 'http://localhost:8080/api/v1',
+        apiKey: 'merchant123_api_secret',
+        balance: 0,
+        transactions: []
+    };
+
+    // --- Utility Functions ---
+
+    function formatNaira(amount) {
+        return `₦${Number(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+    }
+
+    function createTransactionHtml(transaction) {
+        const isCredit = transaction.type === 'credit';
+        const iconClass = isCredit ? 'credit' : 'debit';
+        const amountClass = isCredit ? 'credit' : 'debit';
+        const sign = isCredit ? '+' : '-';
+        const badgeClass = transaction.status === 'success' ? 'badge-success' :
+                           transaction.status === 'pending' ? 'badge-pending' : 'badge-failed';
+
+        return `
+            <div class="transaction-item">
+                <div class="transaction-info">
+                    <div class="transaction-icon ${iconClass}">
+                        ${isCredit ? '📥' : '📤'}
+                    </div>
+                    <div class="transaction-details">
+                        <h4>${transaction.description}</h4>
+                        <p>${new Date(transaction.date).toLocaleDateString()} | Ref: ${transaction.ref}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="transaction-amount ${amountClass}">
+                        ${sign}${formatNaira(transaction.amount)}
+                    </div>
+                    <div class="badge ${badgeClass}">${transaction.status}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    function calculateStats(transactions, userAccountNumber) {
+        let totalReceived = 0;
+        let totalSent = 0;
+        const totalTransactions = transactions.length;
+
+        transactions.forEach(tx => {
+            if (tx.status === 'success') {
+                if (tx.recipient === userAccountNumber) {
+                    totalReceived += tx.amount;
+                } else if (tx.sender === userAccountNumber) {
+                    totalSent += tx.amount;
+                }
+                // Handle 'fund' directly as received
+                if (tx.type === 'credit' && tx.sender === 'System') {
+                     totalReceived += tx.amount;
+                }
+            }
+        });
+
+        return {
+            totalTransactions,
+            totalReceived,
+            totalSent
+        };
+    }
+
+
+    // --- Core Application Functions ---
+
+    // Initialize App
+    document.addEventListener('DOMContentLoaded', () => {
+        checkAuth();
+        setupEventListeners();
+    });
+
+    // Check Authentication
+    function checkAuth() {
+        const token = localStorage.getItem('payflow_token');
+        const user = localStorage.getItem('payflow_user');
+
+        if (token && user) {
+            state.token = token;
+            state.user = JSON.parse(user);
+            showPage('dashboard');
+            loadUserData();
+        } else {
+            showPage('login');
+        }
+    }
+
+    // Setup Event Listeners
+    function setupEventListeners() {
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('registerForm').addEventListener('submit', handleRegister);
+        document.getElementById('fundForm').addEventListener('submit', handleFund);
+        document.getElementById('transferForm').addEventListener('submit', handleTransfer);
+    }
+
+    // Page Navigation
+    function showPage(pageName) {
+        // Hide all pages
+        document.querySelectorAll('[id$="Page"]').forEach(page => {
+            page.classList.add('hidden');
+        });
+
+        // Show navbar for authenticated pages
+        const navbar = document.getElementById('navbar');
+        if (['dashboard', 'transactions', 'profile'].includes(pageName)) {
+            navbar.classList.remove('hidden');
+            document.getElementById(pageName + 'Page').classList.remove('hidden');
+
+            if (pageName === 'dashboard') loadDashboard();
+            if (pageName === 'transactions') loadTransactions();
+            if (pageName === 'profile') loadProfile();
+        } else {
+            navbar.classList.add('hidden');
+            document.getElementById(pageName + 'Page').classList.remove('hidden');
+        }
+    }
+
+    // Modal Functions
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+
+    // Alert Functions
+    function showAlert(elementId, message, type = 'info') {
+        const alertEl = document.getElementById(elementId);
+        alertEl.innerHTML = `
+            <div class="alert alert-${type}">
+                ${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'} ${message}
+            </div>
+        `;
+        setTimeout(() => alertEl.innerHTML = '', 5000);
+    }
+
+    // Logout
+    function logout() {
+        state.user = null;
+        state.token = null;
+        state.balance = 0;
+        state.transactions = [];
+        localStorage.removeItem('payflow_token');
+        localStorage.removeItem('payflow_user');
+        showPage('login');
+        showAlert('loginAlert', 'You have been successfully logged out.', 'info');
+    }
+
+    // --- Data Loading Functions ---
+
+    async function loadUserData() {
+        try {
+            const balanceData = await mockFetchBalance(state.user.accountNumber);
+            state.balance = balanceData.balance;
+
+            const transactionsData = await mockFetchTransactions(state.user.accountNumber);
+            state.transactions = transactionsData.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            loadDashboard();
+        } catch (error) {
+            console.error("Error loading user data:", error);
+            // Optionally show an alert on the dashboard
+        }
+    }
+
+    function loadDashboard() {
+        document.getElementById('userBalance').textContent = formatNaira(state.balance);
+
+        const recentTransactionsEl = document.getElementById('recentTransactions');
+        const recentTxs = state.transactions.slice(0, 5); // Show up to 5 recent transactions
+
+        if (recentTxs.length > 0) {
+            recentTransactionsEl.innerHTML = recentTxs.map(createTransactionHtml).join('');
+        } else {
+             recentTransactionsEl.innerHTML = `
+                <p class="text-center" style="color: var(--gray); padding: 2rem;">
+                    No transactions yet. Start by funding your wallet!
+                </p>
+            `;
+        }
+    }
+
+    async function loadTransactions() {
+        const allTransactionsEl = document.getElementById('allTransactions');
+        allTransactionsEl.innerHTML = '<div class="spinner"></div>';
+
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        if (state.transactions.length > 0) {
+            allTransactionsEl.innerHTML = state.transactions.map(createTransactionHtml).join('');
+        } else {
+            allTransactionsEl.innerHTML = `
+                <p class="text-center" style="color: var(--gray); padding: 2rem;">
+                    You have no transaction history.
+                </p>
+            `;
+        }
+    }
+
+    function loadProfile() {
+        if (!state.user) return;
+
+        document.getElementById('profileName').value = state.user.name;
+        document.getElementById('profileEmail').value = state.user.email;
+        document.getElementById('profileAccountNumber').value = state.user.accountNumber;
+        document.getElementById('profileMemberSince').value = new Date(state.user.memberSince).toLocaleDateString();
+
+        const stats = calculateStats(state.transactions, state.user.accountNumber);
+
+        document.getElementById('totalTransactions').textContent = stats.totalTransactions;
+        document.getElementById('totalReceived').textContent = formatNaira(stats.totalReceived);
+        document.getElementById('totalSent').textContent = formatNaira(stats.totalSent);
+    }
+
+    // --- Transaction Handlers ---
+
+    async function handleFund(e) {
+        e.preventDefault();
+        const amount = parseFloat(document.getElementById('fundAmount').value);
+        const gateway = document.getElementById('fundGateway').value;
+
+        if (amount <= 0 || isNaN(amount)) return;
+
+        closeModal('fundModal');
+
+        try {
+            const response = await mockFund(state.user.accountNumber, amount, gateway);
+
+            // Update state
+            state.balance = response.newBalance;
+            state.transactions.unshift(response.newTransaction);
+
+            showAlert('dashboardPage', `Successfully funded ₦${amount.toFixed(2)} via ${gateway}.`, 'success');
+            loadDashboard(); // Refresh dashboard data
+
+        } catch (error) {
+            showAlert('dashboardPage', error.message, 'error');
+        }
+    }
+
+    async function handleTransfer(e) {
+        e.preventDefault();
+        const recipient = document.getElementById('transferRecipient').value;
+        const amount = parseFloat(document.getElementById('transferAmount').value);
+        const description = document.getElementById('transferDescription').value;
+
+        if (amount <= 0 || isNaN(amount)) return;
+
+        if (amount > state.balance) {
+            showAlert('transferModal', 'Insufficient balance.', 'error');
+            return;
+        }
+
+        closeModal('transferModal');
+
+        try {
+            const response = await mockTransfer(state.user.accountNumber, recipient, amount, description);
+
+            // Update state
+            state.balance = response.senderNewBalance;
+            state.transactions.unshift(response.newTransaction);
+
+            showAlert('dashboardPage', `Successfully sent ${formatNaira(amount)} to ${recipient}.`, 'success');
+            loadDashboard(); // Refresh dashboard data
+
+            // Clear form inputs
+            document.getElementById('transferForm').reset();
+
+        } catch (error) {
+            showAlert('dashboardPage', error.message, 'error');
+        }
+    }
+
+    // --- Authentication Functions (Continuing from your snippet) ---
+
+    async function handleLogin(e) {
+        e.preventDefault();
+
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        try {
+            // Mock API call - replace with actual API
+            const response = await mockLogin(email, password);
+
+            state.user = response.user;
+            state.token = response.token;
+
+            localStorage.setItem('payflow_token', response.token);
+            localStorage.setItem('payflow_user', JSON.stringify(response.user));
+
+            showAlert('loginAlert', 'Login successful! Redirecting...', 'success');
+            setTimeout(() => showPage('dashboard'), 1000);
+
+        } catch (error) {
+            showAlert('loginAlert', error.message, 'error');
+        }
+    }
+
+    async function handleRegister(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('registerName').value;
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+        if (password !== confirmPassword) {
+            showAlert('registerAlert', 'Passwords do not match!', 'error');
+            return;
+        }
+
+        try {
+            const response = await mockRegister(name, email, password);
+
+            // Note: In a real app, you might auto-login or redirect. Here, we show a success message.
+            showAlert('registerAlert', 'Registration successful! Please login.', 'success');
+            // Clear form inputs
+            document.getElementById('registerForm').reset();
+            setTimeout(() => showPage('login'), 2000);
+
+        } catch (error) {
+            showAlert('registerAlert', error.message, 'error');
+        }
+    }
+
+    // ----------------------------------------------------
+    // --- MOCK BACKEND SIMULATION (For Frontend Testing) ---
+    // ----------------------------------------------------
+
+    const mockDatabase = {
+        users: [
+            { id: 1, name: 'John Doe', email: 'user@example.com', password: 'password123', accountNumber: '2109876543', memberSince: '2023-01-15' },
+            { id: 2, name: 'Jane Smith', email: 'jane@example.com', password: 'password123', accountNumber: '1023456789', memberSince: '2023-05-20' }
+        ],
+        balances: {
+            '2109876543': 50000.00,
+            '1023456789': 1000.00
+        },
+        transactions: [
+            { id: 101, ref: 'TXN101', date: '2024-10-23T10:00:00Z', type: 'credit', amount: 15000.00, description: 'Initial Deposit', status: 'success', sender: 'System', recipient: '2109876543' },
+            { id: 102, ref: 'TXN102', date: '2024-10-23T11:30:00Z', type: 'debit', amount: 2000.00, description: 'P2P Transfer to Jane Smith', status: 'success', sender: '2109876543', recipient: '1023456789' },
+            { id: 103, ref: 'TXN103', date: '2024-10-23T14:45:00Z', type: 'credit', amount: 5000.00, description: 'P2P Transfer from Jane Smith', status: 'success', sender: '1023456789', recipient: '2109876543' },
+            { id: 104, ref: 'TXN104', date: '2024-10-24T09:00:00Z', type: 'debit', amount: 10000.00, description: 'Payment for services', status: 'pending', sender: '2109876543', recipient: '9876543210' },
+        ]
+    };
+    let transactionIdCounter = 105;
+
+    // Simulate network delay
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+
+    async function mockLogin(email, password) {
+        await delay(500); // Simulate API latency
+        const user = mockDatabase.users.find(u => u.email === email && u.password === password);
+        if (!user) {
+            throw new Error('Invalid email or password.');
+        }
+        return {
+            user: { id: user.id, name: user.name, email: user.email, accountNumber: user.accountNumber, memberSince: user.memberSince },
+            token: `mock-token-${user.id}`
+        };
+    }
+
+    async function mockRegister(name, email, password) {
+        await delay(500);
+        if (mockDatabase.users.some(u => u.email === email)) {
+            throw new Error('Email already registered.');
+        }
+        const newAccountNumber = String(Math.floor(Math.random() * 9000000000) + 1000000000);
+        const newUser = {
+            id: mockDatabase.users.length + 1,
+            name,
+            email,
+            password,
+            accountNumber: newAccountNumber,
+            memberSince: new Date().toISOString().split('T')[0]
+        };
+        mockDatabase.users.push(newUser);
+        mockDatabase.balances[newAccountNumber] = 0; // New users start with 0 balance
+        return { message: 'Registration successful' };
+    }
+
+    async function mockFetchBalance(accountNumber) {
+        await delay(300);
+        const balance = mockDatabase.balances[accountNumber] || 0;
+        return { balance };
+    }
+
+    async function mockFetchTransactions(accountNumber) {
+        await delay(400);
+        const transactions = mockDatabase.transactions.filter(tx =>
+            tx.sender === accountNumber || tx.recipient === accountNumber
+        );
+        return { transactions };
+    }
+
+    async function mockFund(accountNumber, amount, gateway) {
+        await delay(1000);
+        if (amount < 100) throw new Error('Minimum funding amount is ₦100.');
+
+        const newBalance = (mockDatabase.balances[accountNumber] || 0) + amount;
+        mockDatabase.balances[accountNumber] = newBalance;
+
+        const newTransaction = {
+            id: transactionIdCounter++,
+            ref: 'FUND' + Date.now(),
+            date: new Date().toISOString(),
+            type: 'credit',
+            amount: amount,
+            description: `Fund Wallet via ${gateway}`,
+            status: 'success',
+            sender: 'System',
+            recipient: accountNumber
+        };
+        mockDatabase.transactions.push(newTransaction);
+
+        return { newBalance, newTransaction };
+    }
+
+    async function mockTransfer(senderAccountNumber, recipientIdentifier, amount, description) {
+        await delay(1500);
+
+        // 1. Validate Sender Balance
+        if ((mockDatabase.balances[senderAccountNumber] || 0) < amount) {
+            throw new Error('Insufficient funds for this transfer.');
+        }
+
+        // 2. Find Recipient
+        const recipientUser = mockDatabase.users.find(
+            u => u.email === recipientIdentifier || u.accountNumber === recipientIdentifier
+        );
+        if (!recipientUser) {
+            throw new Error('Recipient not found. Check email or account number.');
+        }
+        const recipientAccountNumber = recipientUser.accountNumber;
+
+        if (senderAccountNumber === recipientAccountNumber) {
+             throw new Error('Cannot send money to your own account.');
+        }
+
+        // 3. Process Transaction (Debit Sender, Credit Recipient)
+        const senderNewBalance = mockDatabase.balances[senderAccountNumber] - amount;
+        const recipientNewBalance = (mockDatabase.balances[recipientAccountNumber] || 0) + amount;
+
+        mockDatabase.balances[senderAccountNumber] = senderNewBalance;
+        mockDatabase.balances[recipientAccountNumber] = recipientNewBalance;
+
+        // 4. Create Transactions (Sender's view: Debit, Recipient's view: Credit)
+        const debitTx = {
+            id: transactionIdCounter++,
+            ref: 'P2P' + Date.now(),
+            date: new Date().toISOString(),
+            type: 'debit',
+            amount: amount,
+            description: description || `P2P Transfer to ${recipientUser.name}`,
+            status: 'success',
+            sender: senderAccountNumber,
+            recipient: recipientAccountNumber
+        };
+        mockDatabase.transactions.push(debitTx);
+
+        const creditTx = {
+            id: transactionIdCounter++,
+            ref: debitTx.ref, // Same ref for linking
+            date: debitTx.date,
+            type: 'credit',
+            amount: amount,
+            description: description || `P2P Transfer from ${state.user.name}`,
+            status: 'success',
+            sender: senderAccountNumber,
+            recipient: recipientAccountNumber
+        };
+        // The recipient's transaction will be picked up by their loadUserData/loadTransactions call
+        // We push both transactions to the global mockDatabase
+        mockDatabase.transactions.push(creditTx);
+
+
+        return { senderNewBalance, newTransaction: debitTx };
+    }
+</script>
+</body>
+</html>
