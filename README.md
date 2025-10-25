@@ -43,11 +43,12 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 
 ### 💸 **Core Functionality**
 - ✅ **Instant P2P Transfers**: Send money using receiver's phone number or username
-- ✅ **Bank Withdrawals**: Withdraw funds to external Nigerian bank accounts
+- ✅ **Wallet Funding**: Deposit via Paystack, Flutterwave (Card, Bank Transfer, USSD)
+- ✅ **Bank Withdrawals**: Withdraw funds to any Nigerian bank account
 - ✅ **Secure PIN Authentication**: Bcrypt-hashed PIN for transaction authorization
 - ✅ **Real-time Balance Queries**: Check wallet balance instantly
 - ✅ **Transaction History**: Paginated, filterable transaction logs with search
-- ✅ **Funding System**: Multiple payment gateway support (Paystack, Flutterwave)
+- ✅ **Multi-Gateway Support**: Seamless integration with multiple payment providers
 
 ### 🚀 **Event-Driven Architecture**
 - 📡 **Asynchronous Notifications**: SMS and email alerts via Kafka events
@@ -61,6 +62,131 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 - ⚡ **Redis Caching**: Fast session management and rate limit counters
 - 📊 **Prometheus Metrics**: Production-ready monitoring and observability
 - 🎫 **Kafka Event Streaming**: Reliable message delivery with guaranteed ordering
+
+---
+
+## 💰 Complete Money Flow
+
+### **1. Deposit Flow (Money In)**
+
+```
+┌──────────────┐
+│     User     │
+│  (Mobile/Web)│
+└──────┬───────┘
+       │ 1. POST /api/v1/funding
+       │    {amount: 10000, gateway: "PAYSTACK"}
+       ▼
+┌─────────────────────┐
+│  Funding Controller │
+└──────────┬──────────┘
+           │ 2. Generate payment reference
+           ▼
+┌─────────────────────┐
+│  Paystack/Flutterwave│
+│  Payment Gateway     │◄──── 3. User pays via Card/Bank/USSD
+└──────────┬──────────┘
+           │ 4. Webhook: payment.success
+           ▼
+┌─────────────────────┐
+│  Webhook Handler    │
+└──────────┬──────────┘
+           │ 5. Verify signature
+           │ 6. Credit wallet (+₦10,000)
+           ▼
+┌─────────────────────┐
+│  Database (Wallet)  │
+│  Balance: 0 → 10000 │
+└──────────┬──────────┘
+           │ 7. Publish event
+           ▼
+┌─────────────────────┐
+│  Kafka Topic:       │
+│  deposit.completed  │
+└──────────┬──────────┘
+           │
+           ├─────► 📧 Send SMS: "₦10,000 credited"
+           └─────► 📊 Analytics: Track deposit
+```
+
+### **2. P2P Transfer Flow (Money Movement)**
+
+```
+┌──────────────┐                           ┌──────────────┐
+│  Sender Wallet│                           │Receiver Wallet│
+│  (₦10,000)   │                           │  (₦5,000)    │
+└──────┬───────┘                           └──────────────┘
+       │ 1. POST /api/v1/transfers
+       │    {amount: 3000, receiver: "+234..."}
+       ▼
+┌─────────────────────┐
+│ Transfer Service    │
+│ @Transactional      │
+├─────────────────────┤
+│ 2. Lock both wallets│
+│ 3. Verify PIN       │
+│ 4. Check balance    │
+│ 5. Debit sender     │──► Sender: ₦10,000 - ₦3,000 = ₦7,000
+│ 6. Credit receiver  │──► Receiver: ₦5,000 + ₦3,000 = ₦8,000
+│ 7. Create ledger (2x)│
+│ 8. COMMIT           │
+└──────────┬──────────┘
+           │ 9. afterCommit() → Kafka
+           ▼
+┌─────────────────────┐
+│  transactions.      │
+│  completed (Topic)  │
+└──────────┬──────────┘
+           │
+           ├─────► 📧 SMS to both parties
+           ├─────► 📊 Analytics tracking
+           └─────► 🔍 Fraud detection check
+```
+
+### **3. Withdrawal Flow (Money Out)**
+
+```
+┌──────────────┐
+│  User Wallet │
+│  (₦7,000)    │
+└──────┬───────┘
+       │ 1. POST /api/v1/withdrawals
+       │    {amount: 5000, bank: "Access", account: "012..."}
+       ▼
+┌─────────────────────┐
+│ Withdrawal Service  │
+│ @Transactional      │
+├─────────────────────┤
+│ 2. Verify PIN       │
+│ 3. Lock wallet      │
+│ 4. Check balance    │
+│ 5. Debit wallet     │──► Wallet: ₦7,000 - ₦5,000 - ₦50 (fee) = ₦1,950
+│ 6. Debit fee        │──► Platform fee: +₦50
+│ 7. COMMIT to DB     │
+└──────────┬──────────┘
+           │ 8. Call external bank API
+           ▼
+┌─────────────────────┐
+│ Paystack Transfer   │
+│ API or Bank API     │──► 9. Send ₦5,000 to bank account
+└──────────┬──────────┘
+           │ 10. Success/Failed
+           ▼
+┌─────────────────────┐
+│ Update Transaction  │
+│ Status in DB        │
+└──────────┬──────────┘
+           │ 11. If SUCCESS → Kafka event
+           ▼           If FAILED → Reverse debit
+┌─────────────────────┐
+│  withdrawal.        │
+│  completed (Topic)  │
+└──────────┬──────────┘
+           │
+           ├─────► 📧 SMS: "₦5,000 sent to Access Bank"
+           ├─────► 📊 Analytics: Withdrawal volume
+           └─────► 🔍 Audit: Compliance logging
+```
 
 ---
 
@@ -132,15 +258,23 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 ### **System Architecture Diagram**
 
 ```
+                    External Payment Gateways
+┌─────────────────────────────────────────────────────────────┐
+│  🏦 Paystack  │  🏦 Flutterwave  │  🏦 Bank APIs           │
+│  (Card/Bank)  │  (Card/Bank)     │  (Direct Transfer)      │
+└────────┬──────┴─────────┬────────┴──────────┬──────────────┘
+         │                │                    │
+         │ Webhook/API    │ Webhook/API        │ Callback
+         ▼                ▼                    ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                      API Gateway Layer                       │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
-│  │   Auth     │  │  Transfer  │  │ Withdrawal │            │
-│  │ Controller │  │ Controller │  │ Controller │            │
-│  └──────┬─────┘  └──────┬─────┘  └──────┬─────┘            │
-└─────────┼────────────────┼────────────────┼──────────────────┘
-          │                │                │
-          ▼                ▼                ▼
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────┐│
+│  │   Auth     │  │  Transfer  │  │ Withdrawal │  │Funding ││
+│  │ Controller │  │ Controller │  │ Controller │  │Control.││
+│  └──────┬─────┘  └──────┬─────┘  └──────┬─────┘  └───┬────┘│
+└─────────┼────────────────┼────────────────┼─────────────┼────┘
+          │                │                │             │
+          ▼                ▼                ▼             ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                   Security Filter Chain                       │
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
@@ -152,14 +286,14 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
           ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                     Service Layer                             │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
-│  │  Transfer  │  │ Withdrawal │  │   Wallet   │            │
-│  │  Service   │  │  Service   │  │  Service   │            │
-│  └──────┬─────┘  └──────┬─────┘  └──────┬─────┘            │
-└─────────┼────────────────┼────────────────┼──────────────────┘
-          │                │                │
-          │   @Transactional (ACID)         │
-          ▼                ▼                ▼
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────┐│
+│  │  Transfer  │  │ Withdrawal │  │   Wallet   │  │Funding ││
+│  │  Service   │  │  Service   │  │  Service   │  │Service ││
+│  └──────┬─────┘  └──────┬─────┘  └──────┬─────┘  └───┬────┘│
+└─────────┼────────────────┼────────────────┼─────────────┼────┘
+          │                │                │             │
+          │   @Transactional (ACID)         │             │
+          ▼                ▼                ▼             ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                  Repository Layer (JPA)                       │
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
@@ -186,6 +320,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │  Topic: transactions.completed                         │  │
 │  │  Topic: withdrawal.completed                           │  │
+│  │  Topic: deposit.completed                              │  │
 │  │  Topic: user.notifications                             │  │
 │  └────────────────────────────────────────────────────────┘  │
 └──────────┬───────────────────────────────────────────────────┘
@@ -207,7 +342,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 | Category | Technology | Version | Purpose |
 |----------|-----------|---------|---------|
 | **Language** | Java | 17 | Core application language |
-| **Framework** | Spring Boot | 3.5.7 | Application framework |
+| **Framework** | Spring Boot | 3.5.6 | Application framework |
 | **Security** | Spring Security + JWT | 6.x | Authentication & authorization |
 | **Database** | PostgreSQL | 15+ | Primary data store |
 | **Cache** | Redis | 7+ | Session management & rate limiting |
@@ -514,9 +649,61 @@ Content-Type: application/json
 
 ---
 
+### **Funding Endpoints** 🔐 *Requires JWT*
+
+#### 4. Fund Wallet (via Payment Gateway)
+```http
+POST /api/v1/funding
+Authorization: Bearer {jwt_token}
+Content-Type: application/json
+
+{
+  "walletId": "uuid-here",
+  "amount": 10000.00,
+  "gateway": "PAYSTACK"  // or "FLUTTERWAVE"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "✅ Deposit successful for wallet: uuid-here",
+  "authorizationUrl": "https://paystack.com/pay/xyz123",
+  "reference": "TXN_REF_12345"
+}
+```
+
+**Payment Flow:**
+1. User initiates funding via API
+2. System generates payment reference
+3. User redirected to Paystack/Flutterwave payment page
+4. User completes payment (Card/Bank Transfer/USSD)
+5. Gateway sends webhook notification to your backend
+6. System credits wallet and publishes `deposit.completed` event
+7. User receives SMS/Email confirmation
+
+---
+
 ### **Withdrawal Endpoints** 🔐 *Requires JWT*
 
-#### 4. Withdraw to Bank Account
+#### 5. Withdraw to Bank Account
+```http
+POST /api/v1/withdrawals
+Authorization: Bearer {jwt_token}
+Content-Type: application/json
+
+{
+  "amount": 10000.00,
+  "bankName": "Access Bank",
+  "accountNumber": "0123456789",
+  "accountName": "John Doe",
+  "securePin": "123456",
+  "narration": "Withdrawal to bank"
+}
+```
+
+#### 5. Withdraw to Bank Account
 ```http
 POST /api/v1/withdrawals
 Authorization: Bearer {jwt_token}
@@ -542,11 +729,20 @@ Content-Type: application/json
 }
 ```
 
+**Withdrawal Flow:**
+1. User submits withdrawal request with PIN
+2. System validates PIN and sufficient balance
+3. Debits user wallet immediately
+4. Calls external bank API (via Paystack/Flutterwave Transfer API)
+5. If successful: Publishes `withdrawal.completed` event
+6. If failed: Reverses debit and updates status
+7. User receives notification with outcome
+
 ---
 
 ### **Wallet Endpoints** 🔐 *Requires JWT*
 
-#### 5. Check Balance
+#### 6. Check Balance
 ```http
 GET /api/v1/balance/{walletId}
 Authorization: Bearer {jwt_token}
@@ -561,7 +757,7 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-#### 6. Get Transaction History
+#### 7. Get Transaction History
 ```http
 GET /api/v1/transactions/{walletId}?pageNumber=0&pageSize=10
 Authorization: Bearer {jwt_token}
@@ -642,6 +838,68 @@ http://localhost:8080/swagger-ui.html
 
 ---
 
+## 🏦 Payment Gateway Integration
+
+### **Supported Gateways**
+
+#### **1. Paystack**
+- **Features**: Card payments, Bank Transfer, USSD, Mobile Money
+- **Webhooks**: `charge.success`, `transfer.success`, `transfer.failed`
+- **API Endpoints**:
+  - Funding: `/transaction/initialize`
+  - Withdrawal: `/transfer`
+  - Verification: `/transaction/verify/:reference`
+
+#### **2. Flutterwave**
+- **Features**: Card payments, Bank Transfer, USSD, Mobile Money
+- **Webhooks**: `charge.completed`, `transfer.completed`
+- **API Endpoints**:
+  - Funding: `/payments`
+  - Withdrawal: `/transfers`
+  - Verification: `/transactions/:id/verify`
+
+### **Gateway Configuration**
+
+```yaml
+# application.yml
+payment:
+  gateways:
+    paystack:
+      secret-key: ${PAYSTACK_SECRET_KEY}
+      public-key: ${PAYSTACK_PUBLIC_KEY}
+      webhook-url: ${APP_URL}/api/v1/webhooks/paystack
+    
+    flutterwave:
+      secret-key: ${FLUTTERWAVE_SECRET_KEY}
+      public-key: ${FLUTTERWAVE_PUBLIC_KEY}
+      webhook-url: ${APP_URL}/api/v1/webhooks/flutterwave
+```
+
+### **Webhook Security**
+
+All incoming webhooks are verified using HMAC-SHA512 signatures:
+
+```java
+// Verify Paystack webhook
+String signature = request.getHeader("x-paystack-signature");
+String computedHash = HmacUtils.hmacSha512Hex(secretKey, payload);
+if (!signature.equals(computedHash)) {
+    throw new SecurityException("Invalid webhook signature");
+}
+```
+
+### **Supported Payment Methods**
+
+| Method | Paystack | Flutterwave | Average Time |
+|--------|----------|-------------|--------------|
+| **Card** | ✅ | ✅ | Instant |
+| **Bank Transfer** | ✅ | ✅ | 2-10 mins |
+| **USSD** | ✅ | ✅ | 2-5 mins |
+| **Mobile Money** | ❌ | ✅ | Instant |
+| **QR Code** | ✅ | ✅ | Instant |
+
+---
+
 ## 📨 Kafka Topics & Events
 
 ### **Topic Configuration**
@@ -650,6 +908,7 @@ http://localhost:8080/swagger-ui.html
 |------------|-----------|-----------|---------|
 | `transactions.completed` | 3 | 7 days | P2P transfer events |
 | `withdrawal.completed` | 3 | 7 days | Bank withdrawal events |
+| `deposit.completed` | 3 | 7 days | Wallet funding events |
 | `user.notifications` | 5 | 1 day | SMS/Email notifications |
 
 ### **Event Schemas**
