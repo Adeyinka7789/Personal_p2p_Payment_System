@@ -206,8 +206,8 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 
 | Category | Technology | Version | Purpose |
 |----------|-----------|---------|---------|
-| **Language** | Java | 21 | Core application language |
-| **Framework** | Spring Boot | 3.5.6 | Application framework |
+| **Language** | Java | 17 | Core application language |
+| **Framework** | Spring Boot | 3.5.7 | Application framework |
 | **Security** | Spring Security + JWT | 6.x | Authentication & authorization |
 | **Database** | PostgreSQL | 15+ | Primary data store |
 | **Cache** | Redis | 7+ | Session management & rate limiting |
