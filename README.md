@@ -386,7 +386,7 @@ The application uses **Apache Kafka** for asynchronous, event-driven communicati
 
 Ensure you have the following installed:
 
-- **Java 21+** ([Download](https://adoptium.net/))
+- **Java 17+** ([Download](https://adoptium.net/))
 - **Maven 3.9+** ([Download](https://maven.apache.org/download.cgi))
 - **Docker & Docker Compose** ([Download](https://www.docker.com/get-started))
 - **Git** ([Download](https://git-scm.com/downloads))
