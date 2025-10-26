@@ -2,7 +2,7 @@ package com.example.ppps.controller;
 
 import com.example.ppps.dto.WithdrawRequest;
 import com.example.ppps.dto.WithdrawalResponse;
-import com.example.ppps.entity.TransactionStatus;
+import com.example.ppps.enums.TransactionStatus;
 import com.example.ppps.service.WithdrawalService;
 import jakarta.validation.Valid; // Required for DTO validation
 import lombok.RequiredArgsConstructor;

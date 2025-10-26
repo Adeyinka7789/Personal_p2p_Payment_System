@@ -24,33 +24,54 @@ public class SecurityConfig {
                                                    RateLimitingFilter rateLimitingFilter,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/api/**") // Disable CSRF for API endpoints
+                )
                 .authorizeHttpRequests(requests -> requests
-                        // Public Endpoint 1: Registration (FR1.1)
+                        // Public API Endpoints
                         .requestMatchers("/api/v1/register").permitAll()
-
-                        // Public Endpoint 2: The standard Login path
                         .requestMatchers("/api/v1/auth/login").permitAll()
 
-                        // Secured Endpoints - Require a valid JWT for all financial operations
+                        // Static resources for admin UI
+                        .requestMatchers("/admin/**", "/static/**", "/css/**", "/js/**").permitAll()
+                        .requestMatchers("/login", "/error", "/favicon.ico").permitAll()
+
+                        // Swagger/OpenAPI
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+                        // Actuator
+                        .requestMatchers("/actuator/**").permitAll()
+
+                        // Secured API Endpoints - Require JWT
                         .requestMatchers(
-                                "/api/v1/funding",          // Deposit
-                                "/api/v1/withdrawals",       // Withdrawal (NEW)
-                                "/api/v1/transfers",        // P2P Transfer (FR1.3)
-                                "/api/v1/balance/**",       // Balance Inquiry (FR1.5)
-                                "/api/v1/transactions/**",  // Transaction History (FR1.4)
-                                "/api/v1/reset-pin/**"      // PIN Reset/Change
+                                "/api/v1/funding",
+                                "/api/v1/withdrawals",
+                                "/api/v1/transfers",
+                                "/api/v1/balance/**",
+                                "/api/v1/transactions/**",
+                                "/api/v1/reset-pin/**"
                         ).authenticated()
 
-                        // Fallback: Any other request must also be authenticated
+                        // Any other request must be authenticated
                         .anyRequest().authenticated()
                 )
-                // The Rate Limiting Filter runs first to protect against floods on any endpoint
+                // Form login for web UI
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/admin/index.html", true)
+                        .permitAll()
+                )
+                .logout(logout -> logout
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll()
+                )
+                // Session management: stateless for API, stateful for web UI
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                )
+                // Filters for API endpoints
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-                // The JWT Filter runs second to establish the user's identity
                 .addFilterBefore(jwtAuthenticationFilter, RateLimitingFilter.class);
-
 
         return http.build();
     }

@@ -1,10 +1,9 @@
 package com.example.ppps.entity;
 
+import com.example.ppps.enums.TransactionStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
-
-import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;

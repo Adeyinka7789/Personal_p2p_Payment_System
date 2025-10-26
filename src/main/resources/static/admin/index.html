@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard | PPP Service</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="sidebar">
+    <h2>PPPS Admin</h2>
+    <ul>
+        <li class="active" onclick="showSection('transactions')">Transactions</li>
+        <li onclick="showSection('withdrawals')">Withdrawals</li>
+        <li onclick="showSection('users')">Users</li>
+        <li onclick="showSection('wallets')">Wallets</li>
+    </ul>
+</div>
+
+<div class="main">
+    <header>
+        <h1 id="section-title">Transactions</h1>
+    </header>
+
+    <!-- Transactions Table -->
+    <section id="transactions" class="content-section active">
+        <table id="transactions-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+            </tr>
+            </thead>
+            <tbody id="transactions-body"></tbody>
+        </table>
+    </section>
+
+    <!-- Withdrawals -->
+    <section id="withdrawals" class="content-section">
+        <h2>Pending Withdrawals</h2>
+        <table id="withdrawals-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Amount</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody id="withdrawals-body"></tbody>
+        </table>
+    </section>
+
+    <!-- Users -->
+    <section id="users" class="content-section">
+        <h2>Registered Users</h2>
+        <table id="users-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Phone</th>
+                <th>Wallet ID</th>
+            </tr>
+            </thead>
+            <tbody id="users-body"></tbody>
+        </table>
+    </section>
+
+    <!-- Wallets -->
+    <section id="wallets" class="content-section">
+        <h2>Wallet Balances</h2>
+        <table id="wallets-table">
+            <thead>
+            <tr>
+                <th>Wallet ID</th>
+                <th>User</th>
+                <th>Balance</th>
+            </tr>
+            </thead>
+            <tbody id="wallets-body"></tbody>
+        </table>
+    </section>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

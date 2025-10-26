@@ -5,7 +5,8 @@ import com.example.ppps.dto.GatewayRequest;
 import com.example.ppps.dto.GatewayResponse;
 import com.example.ppps.dto.WithdrawRequest;
 import com.example.ppps.entity.*;
-import com.example.ppps.event.TransactionCompletedEvent;
+import com.example.ppps.enums.EntryType;
+import com.example.ppps.enums.TransactionStatus;
 import com.example.ppps.event.WithdrawalCompletedEvent; // <-- Added this import
 import com.example.ppps.exception.*;
 import com.example.ppps.repository.*;

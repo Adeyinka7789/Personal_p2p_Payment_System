@@ -3,7 +3,7 @@ package com.example.ppps.service;
 import com.example.ppps.dto.GatewayResponse;
 import com.example.ppps.dto.WithdrawRequest;
 import com.example.ppps.entity.Transaction;
-import com.example.ppps.entity.TransactionStatus;
+import com.example.ppps.enums.TransactionStatus;
 import com.example.ppps.entity.Wallet;
 import com.example.ppps.repository.TransactionRepository;
 import com.example.ppps.repository.WalletRepository;

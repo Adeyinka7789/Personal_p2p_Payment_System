@@ -1,6 +1,6 @@
 package com.example.ppps.dto;
 
-import com.example.ppps.entity.TransactionStatus;
+import com.example.ppps.enums.TransactionStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import lombok.AllArgsConstructor;

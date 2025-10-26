@@ -1,7 +1,8 @@
 package com.example.ppps.entity;
 
+import com.example.ppps.enums.EntryType;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.math.BigDecimal;
@@ -9,7 +10,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Data
+@Getter
+@Setter
+@AllArgsConstructor
 @Table(name = "ledger_entries")
 public class LedgerEntry {
 

@@ -2,8 +2,11 @@ package com.example.ppps.repository;
 
 import com.example.ppps.entity.LedgerEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
+
+@Repository  // ADD THIS
 public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, UUID> {
 }

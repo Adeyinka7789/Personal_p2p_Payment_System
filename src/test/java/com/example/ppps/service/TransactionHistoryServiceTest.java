@@ -3,7 +3,7 @@ package com.example.ppps.service;
 import com.example.ppps.controller.TransactionHistoryResponse;
 import com.example.ppps.controller.TransactionSearchRequest;
 import com.example.ppps.entity.Transaction;
-import com.example.ppps.entity.TransactionStatus;
+import com.example.ppps.enums.TransactionStatus;
 import com.example.ppps.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
