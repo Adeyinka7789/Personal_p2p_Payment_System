@@ -24,23 +24,41 @@ public class SecurityConfig {
                                                    RateLimitingFilter rateLimitingFilter,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
+                // Disable CORS (handled by WebConfig) and CSRF protection explicitly for API endpoints
+                .cors(AbstractHttpConfigurer::disable)
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/api/**") // Disable CSRF for API endpoints
                 )
                 .authorizeHttpRequests(requests -> requests
+                        // Public Pages & Static Assets
+                        .requestMatchers("/", "/login", "/register").permitAll()
+                        .requestMatchers("/admin/login").permitAll()
+
+                        // Static resources - Allow all (CSS, JS, images, etc.)
+                        .requestMatchers(
+                                "/users/**",
+                                "/admin/**",
+                                "/static/**",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/fonts/**",
+                                "/favicon.ico"
+                        ).permitAll()
+
                         // Public API Endpoints
-                        .requestMatchers("/api/v1/register").permitAll()
-                        .requestMatchers("/api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/register", "/api/v1/auth/login").permitAll()
 
-                        // Static resources for admin UI
-                        .requestMatchers("/admin/**", "/static/**", "/css/**", "/js/**").permitAll()
-                        .requestMatchers("/login", "/error", "/favicon.ico").permitAll()
+                        // Other public endpoints/assets
+                        .requestMatchers("/error", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/**").permitAll()
 
-                        // Swagger/OpenAPI
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // User dashboard: MUST BE PERMIT ALL! The JWT check is done in the browser's JavaScript.
+                        .requestMatchers("/dashboard").permitAll()
 
-                        // Actuator
-                        .requestMatchers("/actuator/**").permitAll()
+                        // Admin dashboard: This is typically protected via session/cookie in a traditional setup,
+                        // but since we are using JWT, we allow all here and protect it client-side as well.
+                        // NOTE: If you plan to protect the admin panel with a server-side session, this needs adjustment.
+                        .requestMatchers("/admin/dashboard").permitAll()
 
                         // Secured API Endpoints - Require JWT
                         .requestMatchers(
@@ -49,29 +67,29 @@ public class SecurityConfig {
                                 "/api/v1/transfers",
                                 "/api/v1/balance/**",
                                 "/api/v1/transactions/**",
-                                "/api/v1/reset-pin/**"
+                                "/api/v1/reset-pin/**",
+                                "/api/v1/user-info" // Assuming you'll add an endpoint to fetch user details
                         ).authenticated()
 
                         // Any other request must be authenticated
                         .anyRequest().authenticated()
                 )
-                // Form login for web UI
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .defaultSuccessUrl("/admin/index.html", true)
-                        .permitAll()
-                )
-                .logout(logout -> logout
-                        .logoutSuccessUrl("/login?logout")
-                        .permitAll()
-                )
-                // Session management: stateless for API, stateful for web UI
+
+                // IMPORTANT: Since you are using a stateless JWT setup with AJAX login,
+                // we explicitly disable the formLogin() and logout() built-in features.
+                .formLogin(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
+
+                // Session management policy: Stateless for API access, but IF_REQUIRED
+                // allows Spring to handle requests if needed (e.g., /dashboard).
+                // We keep IF_REQUIRED for now to maintain flexibility, but pure JWT apps often use STATELESS.
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
-                // Filters for API endpoints
+
+                // Filter chain: Rate Limiting → JWT Authentication → Spring Security
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, RateLimitingFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPPS Wallet | Secure P2P Payments</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .floating-animation {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+<!-- Header/Navigation -->
+<header class="absolute w-full z-10">
+    <nav class="max-w-7xl mx-auto px-6 lg:px-8 py-6">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <span class="text-2xl font-bold text-gray-800">PPPS Wallet</span>
+            </div>
+            <a href="/admin/login" class="text-sm text-gray-600 hover:text-gray-800 font-medium transition">
+                Admin Access
+            </a>
+        </div>
+    </nav>
+</header>
+
+<!-- Hero Section -->
+<section class="gradient-bg min-h-screen flex items-center relative overflow-hidden">
+    <!-- Decorative Elements -->
+    <div class="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+    <div class="absolute bottom-20 right-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style="animation-delay: 1s;"></div>
+
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 py-20 relative z-10">
+        <div class="grid md:grid-cols-2 gap-12 items-center">
+            <!-- Left Content -->
+            <div class="text-white fade-in">
+                <h1 class="text-5xl md:text-6xl font-extrabold leading-tight mb-6">
+                    Send Money
+                    <br/>
+                    <span class="text-blue-200">Instantly & Securely</span>
+                </h1>
+                <p class="text-xl text-blue-100 mb-8 leading-relaxed">
+                    Experience seamless peer-to-peer payments with zero hassle. Fast, secure, and designed for the modern digital economy.
+                </p>
+
+                <!-- CTA Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <a href="/login" class="bg-white text-purple-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-xl hover:shadow-2xl transform hover:scale-105 text-center">
+                        Get Started
+                    </a>
+                    <a href="/register" class="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-purple-600 transition text-center">
+                        Create Account
+                    </a>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-blue-300/30">
+                    <div>
+                        <div class="text-3xl font-bold">99.9%</div>
+                        <div class="text-sm text-blue-200">Uptime</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold">&lt;2s</div>
+                        <div class="text-sm text-blue-200">Avg Transfer</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold">24/7</div>
+                        <div class="text-sm text-blue-200">Support</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Content - Floating Card -->
+            <div class="hidden md:block floating-animation">
+                <div class="bg-white rounded-3xl shadow-2xl p-8 transform rotate-3">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full"></div>
+                            <div>
+                                <div class="text-sm text-gray-500">Available Balance</div>
+                                <div class="text-3xl font-bold text-gray-800">₦125,430</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 mt-8">
+                        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-800">Transfer Sent</div>
+                                    <div class="text-sm text-gray-500">2 mins ago</div>
+                                </div>
+                            </div>
+                            <div class="text-red-600 font-bold">-₦5,000</div>
+                        </div>
+
+                        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-800">Wallet Funded</div>
+                                    <div class="text-sm text-gray-500">1 hour ago</div>
+                                </div>
+                            </div>
+                            <div class="text-green-600 font-bold">+₦15,000</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-extrabold text-gray-900 mb-4">
+                Why Choose <span class="gradient-text">PPPS Wallet?</span>
+            </h2>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                Built with cutting-edge technology to provide you the best payment experience
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+            <!-- Feature 1 -->
+            <div class="card-hover bg-white border-2 border-gray-100 p-8 rounded-2xl">
+                <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
+                    <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-3">Lightning Fast</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Transactions complete in under 2 seconds. No more waiting for your money to arrive.
+                </p>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="card-hover bg-white border-2 border-gray-100 p-8 rounded-2xl">
+                <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-6">
+                    <svg class="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-3">Bank-Level Security</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Your funds are protected with military-grade encryption and multi-factor authentication.
+                </p>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="card-hover bg-white border-2 border-gray-100 p-8 rounded-2xl">
+                <div class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+                    <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-3">Low Fees</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Transparent pricing with minimal transaction fees. Keep more of your money.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-20 gradient-bg relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-10 left-10 w-64 h-64 bg-white rounded-full"></div>
+        <div class="absolute bottom-10 right-10 w-96 h-96 bg-white rounded-full"></div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-6 lg:px-8 text-center relative z-10">
+        <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-6">
+            Ready to Get Started?
+        </h2>
+        <p class="text-xl text-blue-100 mb-10">
+            Join thousands of users already enjoying seamless P2P payments
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/register" class="bg-white text-purple-600 px-10 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-xl hover:shadow-2xl transform hover:scale-105">
+                Create Free Account
+            </a>
+            <a href="/login" class="bg-transparent border-2 border-white text-white px-10 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-purple-600 transition">
+                Sign In
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-gray-900 text-gray-400 py-12">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+                <div class="flex items-center space-x-2 mb-4">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg"></div>
+                    <span class="text-xl font-bold text-white">PPPS</span>
+                </div>
+                <p class="text-sm">Secure peer-to-peer payment platform for the digital age.</p>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-3">Product</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="hover:text-white transition">Features</a></li>
+                    <li><a href="#" class="hover:text-white transition">Pricing</a></li>
+                    <li><a href="#" class="hover:text-white transition">Security</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-3">Company</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="hover:text-white transition">About</a></li>
+                    <li><a href="#" class="hover:text-white transition">Contact</a></li>
+                    <li><a href="#" class="hover:text-white transition">Careers</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-3">Legal</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="hover:text-white transition">Privacy</a></li>
+                    <li><a href="#" class="hover:text-white transition">Terms</a></li>
+                    <li><a href="#" class="hover:text-white transition">Security</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="border-t border-gray-800 pt-8 text-center text-sm">
+            <p>&copy; 2024 PPPS Wallet. All rights reserved. Built with ❤️ for seamless payments.</p>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

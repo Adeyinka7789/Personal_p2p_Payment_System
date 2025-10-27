@@ -12,9 +12,18 @@ public class WebConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/api/**")
-                        .allowedOrigins("http://localhost:8081")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE");
+                // IMPORTANT: The path should cover all API endpoints
+                registry.addMapping("/api/v1/**")
+                        // **UPDATED:** Using allowedOriginPatterns to cover localhost on any port
+                        // and potential sandbox domains, ensuring compatibility while developing.
+                        .allowedOriginPatterns(
+                                "http://localhost:*",
+                                "http://127.0.0.1:*",
+                                "null" // For files opened directly via file:// protocol
+                        )
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedHeaders("*")
+                        .allowCredentials(true);
             }
         };
     }

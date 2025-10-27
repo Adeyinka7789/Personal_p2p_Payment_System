@@ -95,3 +95,41 @@ button.reject {
 .content-section.active {
   display: block;
 }
+
+/* --- NEW STATUS AND ERROR STYLES --- */
+
+.error-message {
+    text-align: center;
+    color: #ef4444;
+    font-weight: 600;
+    padding: 20px;
+}
+
+.status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 9999px; /* Fully rounded pill shape */
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status.pending {
+    background-color: #fde68a; /* yellow-200 */
+    color: #a16207; /* amber-700 */
+}
+
+.status.approved {
+    background-color: #d1fae5; /* green-100 */
+    color: #047857; /* emerald-700 */
+}
+
+.status.rejected {
+    background-color: #fee2e2; /* red-100 */
+    color: #991b1b; /* red-800 */
+}
+
+.status.failed {
+    background-color: #e0f2f1; /* cyan-100 */
+    color: #06b6d4; /* cyan-500 */
+}

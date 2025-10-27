@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | PPP Service</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .login-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 380px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #1e293b;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #334155;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: #3b82f6;
+            outline: none;
+        }
+
+        #login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        #login-btn:hover {
+            background-color: #2563eb;
+        }
+
+        #login-btn:active {
+            transform: scale(0.99);
+        }
+
+        #message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #ef4444;
+            background-color: #fee2e2;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <h1>Admin Sign In</h1>
+    <div id="message" style="display: none;"></div>
+    <form id="login-form">
+        <div class="input-group">
+            <label for="phoneNumber">Phone Number</label>
+            <input type="text" id="phoneNumber" name="phoneNumber" required pattern="[0-9]+" title="Enter a valid phone number (digits only)">
+        </div>
+        <div class="input-group">
+            <label for="pin">PIN</label>
+            <input type="password" id="pin" name="pin" required maxlength="4" pattern="[0-9]{4}" title="PIN must be 4 digits">
+        </div>
+        <button type="submit" id="login-btn">Log In</button>
+    </form>
+</div>
+
+<script>
+    const API_BASE = "http://localhost:8081/api/v1";
+    const TOKEN_KEY = "adminToken"; // Must match the key in script.js
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const phoneNumber = document.getElementById('phoneNumber').value;
+        const pin = document.getElementById('pin').value;
+        const messageElement = document.getElementById('message');
+
+        messageElement.style.display = 'none';
+        messageElement.textContent = '';
+
+        // Basic input validation
+        if (phoneNumber.length === 0 || pin.length === 0) {
+             showMessage('Please enter both phone number and PIN.');
+             return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phoneNumber, pin })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Check for the JWT structure
+                if (data && data.token) {
+                    // Success: Save the JWT and redirect to the dashboard
+                    sessionStorage.setItem(TOKEN_KEY, data.token);
+                    showMessage('Login successful! Redirecting...', '#10b981', '#d1fae5');
+                    // Use a slight delay to let the message show before redirecting
+                    setTimeout(() => {
+                        window.location.href = '/admin/index.html';
+                    }, 500);
+                } else {
+                    throw new Error('Login failed: Token not received.');
+                }
+            } else {
+                // Failure: Display error message from the backend (if available)
+                const errorMsg = data.message || 'Invalid credentials or API error.';
+                showMessage(errorMsg);
+            }
+        } catch (error) {
+            console.error("Login Error:", error);
+            showMessage('An unexpected error occurred. Check API status.');
+        }
+    });
+
+    /**
+     * Utility function to display messages on the form.
+     * @param {string} text - The message text.
+     * @param {string} textColor - Text color (default: red).
+     * @param {string} bgColor - Background color (default: light red).
+     */
+    function showMessage(text, textColor = '#ef4444', bgColor = '#fee2e2') {
+        const messageElement = document.getElementById('message');
+        messageElement.textContent = text;
+        messageElement.style.color = textColor;
+        messageElement.style.backgroundColor = bgColor;
+        messageElement.style.display = 'block';
+    }
+
+    // Check for logout query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('logout') === '') {
+        showMessage('You have been successfully logged out.', '#334155', '#e2e8f0');
+    }
+</script>
+</body>
+</html>

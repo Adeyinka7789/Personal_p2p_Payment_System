@@ -1,7 +1,7 @@
 package com.example.ppps.config;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;  // <-- ADDED THIS IMPORT
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -14,13 +14,23 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
-    private static final int MAX_REQUESTS_PER_MINUTE = 100;
+    // Increased limit for development - adjust as needed
+    private static final int MAX_REQUESTS_PER_MINUTE = 1000;
     private final ConcurrentHashMap<String, Integer> requestCounts = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> requestTimestamps = new ConcurrentHashMap<>();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {  // <-- ADDED ServletException HERE
+            throws ServletException, IOException {
+
+        String requestURI = request.getRequestURI();
+
+        // ✅ SKIP rate limiting for static resources and public pages
+        if (shouldSkipRateLimiting(requestURI)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String clientIp = request.getRemoteAddr();
         long currentTime = System.currentTimeMillis();
         long minuteAgo = currentTime - 60000;
@@ -45,5 +55,25 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Determines if rate limiting should be skipped for this request.
+     * Returns true for static resources, public pages, and health checks.
+     */
+    private boolean shouldSkipRateLimiting(String requestURI) {
+        return requestURI.startsWith("/users/") ||
+                requestURI.startsWith("/admin/") ||
+                requestURI.startsWith("/static/") ||
+                requestURI.startsWith("/css/") ||
+                requestURI.startsWith("/js/") ||
+                requestURI.startsWith("/images/") ||
+                requestURI.startsWith("/favicon.ico") ||
+                requestURI.startsWith("/actuator/") ||
+                requestURI.equals("/") ||
+                requestURI.equals("/login") ||
+                requestURI.equals("/register") ||
+                requestURI.equals("/dashboard") ||
+                requestURI.equals("/error");
     }
 }

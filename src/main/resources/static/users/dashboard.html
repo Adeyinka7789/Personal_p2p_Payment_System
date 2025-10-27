@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard | PPPS Wallet</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        :root {
+            --primary: #4f46e5; /* Indigo 600 */
+            --primary-dark: #4338ca; /* Indigo 700 */
+            --success: #10b981; /* Emerald 500 */
+            --danger: #ef4444; /* Red 500 */
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .card { transition: all 0.2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .nav-link.active {
+            color: var(--primary-dark);
+            border-bottom: 2px solid var(--primary-dark);
+            font-weight: 600;
+        }
+        .spinner, .spinner-sm {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        .spinner {
+            width: 24px; height: 24px;
+            border-left-color: var(--primary-dark);
+        }
+        .spinner-sm {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-left-color: #fff;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<header class="bg-white shadow-sm sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-900">PPPS Wallet</h1>
+        <nav class="hidden sm:flex space-x-8">
+            <a href="#dashboard" onclick="showSection('dashboard')" class="nav-link text-gray-500 hover:text-gray-900 transition active">Dashboard</a>
+            <a href="#history" onclick="showSection('history')" class="nav-link text-gray-500 hover:text-gray-900 transition">History</a>
+        </nav>
+        <button onclick="logout()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">
+            <i class="fas fa-sign-out-alt mr-1"></i> Log Out
+        </button>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
+    <div id="loading-indicator" class="flex justify-center items-center py-10 hidden">
+        <div class="spinner"></div>
+        <p class="ml-4 text-lg text-gray-600">Loading wallet data...</p>
+    </div>
+
+    <div id="content" class="space-y-8 hidden">
+        <!-- Balance Card -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 card bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-600">
+                <p class="text-sm font-medium text-gray-500">Current Balance</p>
+                <div class="mt-1 flex items-center justify-between">
+                    <p id="wallet-balance" class="text-4xl font-extrabold text-gray-900">
+                        ₦0.00
+                    </p>
+                    <i class="fas fa-wallet text-indigo-400 text-4xl opacity-50"></i>
+                </div>
+                <p id="user-id-display" class="mt-4 text-xs font-mono text-gray-400 truncate">
+                    Wallet ID: Loading...
+                </p>
+            </div>
+            <!-- Quick Links -->
+            <div class="card bg-white p-6 rounded-xl shadow-lg">
+                <p class="text-lg font-semibold text-gray-900 mb-4">Quick Links</p>
+                <div class="flex space-x-2 sm:space-x-4">
+                    <!-- Fund Button -->
+                    <button onclick="showModal('fund-modal')" class="flex-1 px-2 sm:px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition text-xs sm:text-sm">
+                        <i class="fas fa-plus-circle mr-1 sm:mr-2"></i> Funding
+                    </button>
+                    <!-- Withdrawal Button (NEW) -->
+                    <button onclick="showModal('withdraw-modal')" class="flex-1 px-2 sm:px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition text-xs sm:text-sm">
+                        <i class="fas fa-minus-circle mr-1 sm:mr-2"></i> Withdrawal
+                    </button>
+                    <!-- Transfer Button -->
+                    <button onclick="showModal('transfer-modal')" class="flex-1 px-2 sm:px-4 py-2 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600 transition text-xs sm:text-sm">
+                        <i class="fas fa-exchange-alt mr-1 sm:mr-2"></i> Transfer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <section id="history" class="content-section hidden">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Transaction History</h2>
+            <p id="history-error-message" class="text-sm font-medium mb-4 text-red-600"></p>
+            <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                        </thead>
+                        <tbody id="transaction-history-body" class="bg-white divide-y divide-gray-200">
+                        <!-- History rows populated by JavaScript -->
+                        <tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No recent transactions.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Default Dashboard/Recent Activity Section -->
+        <section id="dashboard" class="content-section">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
+            <p class="text-gray-500 mb-6">See the last 5 transactions below.</p>
+            <p id="recent-error-message" class="text-sm font-medium mb-4 text-red-600"></p>
+            <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                        </thead>
+                        <tbody id="recent-activity-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Recent activity rows populated by JavaScript -->
+                        <tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No recent activity.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<!-- --- MODALS --- -->
+
+<!-- FUNDING Modal -->
+<div id="fund-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="text-xl font-semibold text-gray-900">Funding (Deposit)</h3>
+            <button onclick="hideModal()" class="text-gray-400 hover:text-gray-600 transition">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <form id="fund-form">
+            <div class="mb-4">
+                <label for="fund-amount" class="block text-sm font-medium text-gray-700">Amount (₦)</label>
+                <input type="number" id="fund-amount" name="amount" min="100" step="0.01" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+            </div>
+            <p id="fund-message" class="text-sm font-medium pt-2"></p>
+            <button type="submit" class="w-full mt-4 flex justify-center items-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition">
+                Deposit
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- WITHDRAWAL Modal (NEW) -->
+<div id="withdraw-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="text-xl font-semibold text-gray-900">Withdrawal</h3>
+            <button onclick="hideModal()" class="text-gray-400 hover:text-gray-600 transition">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <form id="withdraw-form">
+            <div class="mb-4">
+                <label for="withdraw-amount" class="block text-sm font-medium text-gray-700">Amount (₦)</label>
+                <input type="number" id="withdraw-amount" name="amount" min="100" step="0.01" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 p-2 border">
+            </div>
+            <div class="mb-4">
+                <label for="withdraw-pin" class="block text-sm font-medium text-gray-700">Transaction PIN (4-Digits)</label>
+                <input type="password" id="withdraw-pin" name="pin" maxlength="4" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 p-2 border">
+            </div>
+            <p id="withdraw-message" class="text-sm font-medium pt-2"></p>
+            <button type="submit" class="w-full mt-4 flex justify-center items-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition">
+                Withdraw
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- TRANSFER Modal -->
+<div id="transfer-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="text-xl font-semibold text-gray-900">P2P Transfer</h3>
+            <button onclick="hideModal()" class="text-gray-400 hover:text-gray-600 transition">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <form id="transfer-form">
+            <div class="mb-4">
+                <label for="transfer-recipient" class="block text-sm font-medium text-gray-700">Recipient Wallet ID</label>
+                <input type="text" id="transfer-recipient" name="recipient" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+            </div>
+            <div class="mb-4">
+                <label for="transfer-amount" class="block text-sm font-medium text-gray-700">Amount (₦)</label>
+                <input type="number" id="transfer-amount" name="amount" min="1" step="0.01" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+            </div>
+            <div class="mb-4">
+                <label for="transfer-pin" class="block text-sm font-medium text-gray-700">Transaction PIN (4-Digits)</label>
+                <input type="password" id="transfer-pin" name="pin" maxlength="4" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+            </div>
+            <p id="transfer-message" class="text-sm font-medium pt-2"></p>
+            <button type="submit" class="w-full mt-4 flex justify-center items-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                Send Payment
+            </button>
+        </form>
+    </div>
+</div>
+
+
+<script>
+    const API_BASE = "http://localhost:8081/api/v1";
+    // Get tokens and user ID from localStorage
+    const authToken = localStorage.getItem('authToken');
+    const currentUserId = localStorage.getItem('userId');
+
+    let pollingInterval;
+
+    // --- Utility Functions ---
+
+    function logout() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userId');
+        // Redirect to login page
+        window.location.href = '/login';
+    }
+
+    function showSection(id) {
+        document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        // Find the matching link and set it as active
+        document.querySelector(`.nav-link[href="#${id}"]`).classList.add('active');
+    }
+
+    function showModal(id) {
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.classList.add('hidden');
+        });
+        document.getElementById(id).classList.remove('hidden');
+
+        // Clear forms and messages when opening
+        resetMessages('fund');
+        resetMessages('transfer');
+        resetMessages('withdraw'); // NEW: Clear withdrawal message
+        document.getElementById('fund-form').reset();
+        document.getElementById('transfer-form').reset();
+        document.getElementById('withdraw-form').reset(); // NEW: Reset withdrawal form
+    }
+
+    function hideModal() {
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.classList.add('hidden');
+        });
+    }
+
+    function resetMessages(type) {
+        const btn = document.querySelector(`#${type}-form button[type="submit"]`);
+        const msg = document.getElementById(`${type}-message`);
+
+        if (btn) {
+            btn.disabled = false;
+            if (type === 'fund') {
+                btn.textContent = 'Deposit';
+            } else if (type === 'transfer') {
+                btn.textContent = 'Send Payment';
+            } else if (type === 'withdraw') { // NEW
+                btn.textContent = 'Withdraw';
+            }
+        }
+        if (msg) {
+            msg.textContent = '';
+        }
+    }
+
+
+    // --- Data Fetching and Polling ---
+
+    function startPolling() {
+        if (pollingInterval) { clearInterval(pollingInterval); }
+        fetchDashboardData();
+        pollingInterval = setInterval(fetchDashboardData, 5000); // Poll every 5 seconds
+    }
+
+    function fetchDashboardData() {
+        loadWalletBalance();
+        loadRecentActivity();
+        loadTransactionHistory(); // Ensures all data is fresh
+    }
+
+    async function fetchData(endpoint, errorId) {
+        const loadingDiv = document.getElementById('loading-indicator');
+        const contentDiv = document.getElementById('content');
+        const errorMsg = document.getElementById(errorId);
+
+        try {
+            loadingDiv.classList.remove('hidden');
+            contentDiv.classList.add('hidden');
+            errorMsg.textContent = ''; // Clear previous error
+
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                throw new Error(errorData.message || 'Failed to fetch data.');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error(`Error fetching ${endpoint}:`, error);
+            errorMsg.textContent = `Error: ${error.message}`;
+            throw error; // Re-throw to be caught by the caller if needed
+        } finally {
+            // Hide loading indicator only after all data has been attempted to load in fetchDashboardData
+        }
+    }
+
+    async function loadWalletBalance() {
+        const balanceEl = document.getElementById('wallet-balance');
+        const userIdDisplay = document.getElementById('user-id-display');
+
+        try {
+            const data = await fetchData(`/wallets/${currentUserId}`, 'dashboard-error-message');
+            balanceEl.textContent = `₦${data.balance.toFixed(2).toLocaleString('en-NG')}`;
+            userIdDisplay.textContent = `Wallet ID: ${data.id}`;
+        } catch (error) {
+            balanceEl.textContent = 'Error';
+            userIdDisplay.textContent = 'Wallet ID: Error';
+            // Specific error handling handled in fetchData
+        }
+    }
+
+    async function loadRecentActivity() {
+        const tbody = document.getElementById('recent-activity-body');
+        const errorMsg = document.getElementById('recent-error-message');
+        try {
+            // Load only the last 5 for the dashboard
+            const data = await fetchData(`/transactions?limit=5`, 'recent-error-message');
+            renderTransactions(data, tbody, errorMsg);
+
+        } catch (error) {
+            errorMsg.textContent = `Failed to load recent activity: ${error.message}`;
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-red-500">Error loading recent activity.</td></tr>';
+        } finally {
+            document.getElementById('loading-indicator').classList.add('hidden');
+            document.getElementById('content').classList.remove('hidden');
+        }
+    }
+
+    async function loadTransactionHistory() {
+        const tbody = document.getElementById('transaction-history-body');
+        const errorMsg = document.getElementById('history-error-message');
+        try {
+            // Load all for the history page
+            const data = await fetchData(`/transactions`, 'history-error-message');
+            renderTransactions(data, tbody, errorMsg);
+
+        } catch (error) {
+            errorMsg.textContent = `Failed to load history: ${error.message}`;
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-red-500">Error loading history. Check console.</td></tr>';
+        }
+    }
+
+    function renderTransactions(transactions, tbody, errorMsg) {
+        if (!transactions || transactions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No transactions found.</td></tr>';
+            errorMsg.textContent = '';
+            return;
+        }
+
+        tbody.innerHTML = transactions.map(t => {
+            // Determine transaction type and sign based on debit/credit
+            let typeText = 'N/A';
+            let isDebit = false;
+            let type = t.type; // Assuming the API returns a 'type' field
+
+            if (type === 'TRANSFER_OUT' || type === 'WITHDRAWAL') {
+                typeText = type === 'TRANSFER_OUT' ? 'P2P Sent' : 'Withdrawal';
+                isDebit = true;
+            } else if (type === 'TRANSFER_IN' || type === 'FUNDING') {
+                typeText = type === 'TRANSFER_IN' ? 'P2P Received' : 'Funding';
+                isDebit = false;
+            } else {
+                typeText = type;
+            }
+
+            const amountClass = isDebit ? 'text-red-600' : 'text-green-600';
+            const sign = isDebit ? '-' : '+';
+
+            return `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${new Date(t.createdAt).toLocaleDateString()}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">${typeText}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">${t.details || t.description || 'N/A'}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-right ${amountClass}">${sign}₦${t.amount.toFixed(2).toLocaleString('en-NG')}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${t.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${t.status}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // --- Form Submission Handlers ---
+
+    // FUNDING
+    document.getElementById('fund-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const form = e.target;
+        const amount = parseFloat(form.amount.value);
+        const btn = form.querySelector('button[type="submit"]');
+        const msg = document.getElementById('fund-message');
+
+        if (isNaN(amount) || amount <= 0) {
+            msg.className = 'text-sm font-medium pt-2 text-red-600';
+            msg.textContent = 'Please enter a valid amount.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner-sm"></div> Depositing...';
+        msg.textContent = ''; // Clear previous message
+
+        try {
+            const response = await fetch(`${API_BASE}/wallets/fund`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ amount })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const error = data.message || 'Funding failed.';
+                throw new Error(error);
+            }
+
+            msg.className = 'text-sm font-medium pt-2 text-green-600';
+            msg.textContent = `Funding of ₦${amount.toFixed(2).toLocaleString('en-NG')} successful!`;
+            document.getElementById('fund-form').reset();
+            fetchDashboardData(); // Refresh balance and recent activity
+        } catch (error) {
+            msg.className = 'text-sm font-medium pt-2 text-red-600';
+
+            let errorMessage = error.message;
+             if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+                errorMessage = "Connection refused. The API server is likely unreachable.";
+            }
+
+            msg.textContent = errorMessage || 'Funding failed.';
+        } finally {
+             // Restore button state
+            resetMessages('fund');
+        }
+    });
+
+    // WITHDRAWAL (NEW)
+    document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const form = e.target;
+        const amount = parseFloat(form.amount.value);
+        const pin = form.pin.value;
+        const btn = form.querySelector('button[type="submit"]');
+        const msg = document.getElementById('withdraw-message');
+
+        if (isNaN(amount) || amount <= 0) {
+            msg.className = 'text-sm font-medium pt-2 text-red-600';
+            msg.textContent = 'Please enter a valid amount.';
+            return;
+        }
+
+        if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+            msg.className = 'text-sm font-medium pt-2 text-red-600';
+            msg.textContent = 'PIN must be a 4-digit number.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner-sm"></div> Processing...';
+        msg.textContent = ''; // Clear previous message
+
+        try {
+            const response = await fetch(`${API_BASE}/wallets/withdraw`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ amount, pin })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const error = data.message || 'Withdrawal failed. Check balance/PIN.';
+                throw new Error(error);
+            }
+
+            msg.className = 'text-sm font-medium pt-2 text-green-600';
+            msg.textContent = `Withdrawal of ₦${amount.toFixed(2).toLocaleString('en-NG')} initiated.`;
+            form.reset();
+            fetchDashboardData(); // Refresh balance and recent activity
+        } catch (error) {
+            msg.className = 'text-sm font-medium pt-2 text-red-600';
+
+            let errorMessage = error.message;
+             if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+                errorMessage = "Connection refused. The API server is likely unreachable.";
+            }
+
+            msg.textContent = errorMessage || 'Withdrawal failed.';
+        } finally {
+             // Restore button state
+            resetMessages('withdraw');
+        }
+    });
+
+
+    // TRANSFER
+    document.getElementById('transfer-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const form = e.target;
+        const recipientWalletId = form.recipient.value.trim();
+        const amount = parseFloat(form.amount.value);
+        const pin = form.pin.value;
+        const btn = form.querySelector('button[type="submit"]');
+        const msg = document.getElementById('transfer-message');
+
+        if (!recipientWalletId) {
+             msg.className = 'text-sm font-medium pt-2 text-red-600';
+             msg.textContent = 'Recipient ID is required.';
+             return;
+        }
+        if (isNaN(amount) || amount <= 0) {
+            msg.className = 'text-sm font-medium pt-2 text-red-600';
+            msg.textContent = 'Please enter a valid amount.';
+            return;
+        }
+        if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+            msg.className = 'text-sm font-medium pt-2 text-red-600';
+            msg.textContent = 'PIN must be a 4-digit number.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner-sm"></div> Sending...';
+        msg.textContent = ''; // Clear previous message
+
+        try {
+            const response = await fetch(`${API_BASE}/wallets/transfer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ recipientWalletId, amount, pin })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const error = data.message || 'Transfer failed. Check ID/Balance/PIN.';
+                throw new Error(error);
+            }
+
+            msg.className = 'text-sm font-medium pt-2 text-green-600';
+            msg.textContent = `Transfer of ₦${amount.toFixed(2).toLocaleString('en-NG')} to ${recipientWalletId} successful!`;
+            form.reset();
+            fetchDashboardData(); // Refresh balance and recent activity
+        } catch (error) {
+            msg.className = 'text-sm font-medium pt-2 text-red-600';
+
+            let errorMessage = error.message;
+             if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+                errorMessage = "Connection refused. The API server is likely unreachable.";
+            }
+
+            msg.textContent = errorMessage || 'Transfer failed.';
+        } finally {
+             // Restore button state
+            resetMessages('transfer');
+        }
+    });
+
+
+    // --- Initialization ---
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // If no auth token, redirect to login page immediately
+        if (!authToken || !currentUserId) {
+            // Use setTimeout to ensure this runs after the page loads, preventing flash of content
+            setTimeout(logout, 100);
+            return;
+        }
+
+        // If authenticated, start polling and show the dashboard
+        startPolling();
+        showSection('dashboard');
+    });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Login | PPPS Wallet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0px 10px -5px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease-in-out;
+        }
+        .form-input {
+            transition: border-color 0.2s;
+        }
+        .form-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="w-full max-w-md">
+    <div class="text-center mb-10">
+        <h1 class="text-3xl font-bold text-gray-800">Welcome Back!</h1>
+        <p class="mt-2 text-gray-500">Sign in to manage your P2P wallet.</p>
+    </div>
+    <div class="bg-white p-8 rounded-xl card w-full">
+        <form id="loginForm">
+            <div class="mb-5">
+                <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <input
+                        type="tel"
+                        id="phoneNumber"
+                        name="phoneNumber"
+                        required
+                        pattern="^\+?[0-9]{10,15}$"
+                        placeholder="+2348012345678"
+                        class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                <p class="text-xs text-gray-500 mt-1">Include country code (e.g., +2348012345678)</p>
+            </div>
+            <div class="mb-6">
+                <label for="pin" class="block text-sm font-medium text-gray-700 mb-1">4-Digit PIN</label>
+                <input
+                        type="password"
+                        id="pin"
+                        name="pin"
+                        required
+                        pattern="[0-9]{4}"
+                        maxlength="4"
+                        placeholder="••••"
+                        class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+            </div>
+
+            <p id="message" class="text-sm text-red-600 mb-4 hidden" role="alert"></p>
+
+            <button
+                    type="submit"
+                    id="loginButton"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+                Log In
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-600">
+                Don't have an account?
+                <a href="/register" class="text-blue-600 hover:text-blue-700 font-medium">Sign Up</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = "http://localhost:8081/api/v1";
+    const messageElement = document.getElementById('message');
+    const loginButton = document.getElementById('loginButton');
+    const loginForm = document.getElementById('loginForm');
+
+    function displayMessage(text, isError = false) {
+        messageElement.textContent = text;
+        messageElement.className = `text-sm mb-4 ${isError ? 'text-red-600' : 'text-green-600'} block`;
+        messageElement.classList.remove('hidden');
+    }
+
+    loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const phoneNumber = document.getElementById('phoneNumber').value.trim();
+        const pin = document.getElementById('pin').value.trim();
+
+        loginButton.disabled = true;
+        loginButton.innerHTML = '<div class="spinner border-l-white"></div> Logging in...';
+        messageElement.classList.add('hidden');
+
+        try {
+            const response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phoneNumber, pin })
+            });
+
+            if (!response.ok) {
+                let errorText = "Login failed. Please check your credentials.";
+                try {
+                    const errorData = await response.json();
+                    errorText = errorData.message || errorText;
+                } catch (e) {
+                    // Ignore JSON parsing error
+                }
+                throw new Error(errorText);
+            }
+
+            const data = await response.json();
+            const jwtToken = data.token;
+            const currentUserId = data.userId;
+
+            // Store JWT and userId in localStorage
+            localStorage.setItem('authToken', jwtToken);
+            localStorage.setItem('userId', currentUserId);
+
+            displayMessage("Login successful! Redirecting...", false);
+
+            // Redirect to dashboard
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 500);
+
+        } catch (error) {
+            console.error("Login Error:", error);
+            displayMessage(error.message || "An unknown error occurred during login.", true);
+
+            // Reset button
+            loginButton.disabled = false;
+            loginButton.textContent = 'Log In';
+        }
+    });
+
+    // Redirect if already logged in
+    window.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('authToken')) {
+            window.location.href = '/dashboard';
+        }
+    });
+</script>
+</body>
+</html>

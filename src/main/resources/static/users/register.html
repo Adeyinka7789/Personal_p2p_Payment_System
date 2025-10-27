@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | PPPS Wallet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+<div class="bg-white p-6 md:p-10 rounded-xl shadow-2xl w-full max-w-sm">
+    <h2 class="text-4xl font-bold text-blue-600 mb-2 text-center">PPPS</h2>
+    <h3 class="text-xl font-semibold text-gray-800 mb-8 text-center">Create Your Wallet Account</h3>
+
+    <form id="register-form">
+        <div class="mb-5">
+            <label for="reg-phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+            <input
+                    type="tel"
+                    id="reg-phone"
+                    pattern="^\+?[0-9]{10,15}$"
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 transition duration-150"
+                    placeholder="+2348012345678"
+                    required>
+            <p class="text-xs text-gray-500 mt-1">Include country code (e.g., +2348012345678)</p>
+        </div>
+        <div class="mb-5">
+            <label for="reg-pin" class="block text-sm font-medium text-gray-700">4-Digit PIN</label>
+            <input
+                    type="password"
+                    id="reg-pin"
+                    pattern="[0-9]{4}"
+                    maxlength="4"
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 transition duration-150"
+                    placeholder="••••"
+                    required>
+            <p class="text-xs text-gray-500 mt-1">Enter a 4-digit security PIN</p>
+        </div>
+
+        <p id="register-message" class="text-sm font-medium mb-4"></p>
+
+        <button type="submit" id="register-button" class="w-full py-3 px-4 rounded-lg shadow-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 font-semibold transition duration-150">
+            Create Account
+        </button>
+
+        <p class="mt-6 text-center text-sm text-gray-600">
+            Already registered? <a href="/login" class="text-blue-600 hover:text-blue-500 font-medium">Log in here</a>
+        </p>
+    </form>
+</div>
+
+<script>
+    const API_BASE = "http://localhost:8081/api/v1";
+
+    function resetMessage() {
+        const btn = document.getElementById('register-button');
+        const msg = document.getElementById('register-message');
+        btn.disabled = false;
+        btn.innerHTML = 'Create Account';
+        msg.textContent = '';
+    }
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const phone = document.getElementById('reg-phone').value;
+        const pin = document.getElementById('reg-pin').value;
+        const btn = document.getElementById('register-button');
+        const msg = document.getElementById('register-message');
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner border-l-gray-700"></div> Registering...';
+        msg.textContent = '';
+        msg.className = 'text-sm font-medium mb-4 text-gray-700';
+
+        try {
+            const response = await fetch(`${API_BASE}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phoneNumber: phone, pin })
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ message: response.statusText }));
+                throw new Error(error.message || 'Registration failed. Phone number might be taken.');
+            }
+
+            msg.textContent = 'Success! Account created. Redirecting to login...';
+            msg.className = 'text-sm font-medium mb-4 text-green-600';
+
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1000);
+
+        } catch (error) {
+            msg.textContent = error.message || 'Network error. Could not connect to the API.';
+            msg.className = 'text-sm font-medium mb-4 text-red-600';
+            console.error("Registration error:", error);
+        } finally {
+            if (!msg.textContent.includes('Redirecting')) {
+                setTimeout(resetMessage, 2000);
+            }
+        }
+    });
+</script>
+</body>
+</html>
