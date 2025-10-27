@@ -87,6 +87,9 @@
             <div class="flex items-center space-x-8">
                 <h1 class="text-2xl font-bold text-gray-800">PPPS <span class="text-indigo-600">Wallet</span></h1>
                 <div class="hidden sm:flex space-x-6 text-gray-500 text-base">
+                    <!-- UPDATED HOME LINK: Now points to the explicit path requested by the user -->
+                    <a href="/users/index.html" class="nav-link">Home</a>
+                    <!-- Dashboard remains active for the current page state -->
                     <a href="#" class="nav-link active" onclick="showSection('dashboard', event)">Dashboard</a>
                     <a href="#" class="nav-link" onclick="showSection('fund', event)">Fund Wallet</a>
                     <a href="#" class="nav-link" onclick="showSection('withdraw', event)">Withdraw</a>
@@ -106,7 +109,9 @@
             </div>
         </div>
         <div class="sm:hidden mt-4">
-            <select onchange="showSection(this.value, event)" class="w-full p-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+            <!-- UPDATED onchange to handle external navigation for 'home' -->
+            <select onchange="handleMobileNav(this.value, event)" class="w-full p-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="home">Home</option>
                 <option value="dashboard" selected>Dashboard</option>
                 <option value="fund">Fund Wallet</option>
                 <option value="withdraw">Withdraw</option>
@@ -273,6 +278,7 @@
 
     function logout() {
         localStorage.removeItem('authToken');
+        // Assuming /login is the path to your login page/route handler
         window.location.href = '/login';
     }
 
@@ -280,11 +286,33 @@
         document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        if (event && event.currentTarget) {
-            event.currentTarget.classList.add('active');
+        // Find and activate the correct link in the desktop nav
+        const activeLink = document.querySelector(`.nav-link[onclick*='${id}']`);
+        if (activeLink) {
+            activeLink.classList.add('active');
         } else if (id === 'dashboard') {
+            // Default activation for dashboard
             const dashboardLink = document.querySelector(`.nav-link[onclick*='dashboard']`);
             if (dashboardLink) dashboardLink.classList.add('active');
+        }
+
+        // Handle mobile select synchronization
+        const mobileSelect = document.querySelector('.sm:hidden select');
+        if (mobileSelect) {
+            mobileSelect.value = id;
+        }
+    }
+
+    /**
+     * Handles mobile navigation change event.
+     * Navigates externally for 'home' and internally for dashboard sections.
+     */
+    function handleMobileNav(value, event) {
+        if (value === 'home') {
+            // Updated path as requested
+            window.location.href = '/users/index.html';
+        } else {
+            showSection(value, event);
         }
     }
 
@@ -388,8 +416,6 @@
             }
 
             tbody.innerHTML = transactions.map(t => {
-                const isFunding = t.type === 'FUNDING';
-                const isWithdrawal = t.type === 'WITHDRAWAL';
                 const isDebit = t.type === 'P2P_SENT' || t.type === 'WITHDRAWAL';
                 const typeText = t.type.replace('_', ' ');
                 const amountClass = isDebit ? 'text-red-600' : 'text-green-600';
@@ -549,7 +575,7 @@
             });
             const data = await response.json();
             if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Transfer failed');
-            showToast(`Sent â‚¦${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} to ${recipientPhone}!`);
+            showToast(`Sent ₦${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} to ${recipientPhone}!`);
             e.target.reset();
             fetchDashboardData();
         } catch (error) {
@@ -573,18 +599,21 @@
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.getElementById('theme-root').classList.add(savedTheme);
         if (savedTheme === 'dark') {
+            // Manually set the icon state if the theme is dark on load
             document.getElementById('theme-icon').setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
         }
 
-        startPolling();
+        // Initial data load
+        fetchDashboardData();
+
+        // Start polling for updates every 10 seconds (for balance and history)
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(fetchDashboardData, 10000); // Poll every 10 seconds
+
+        // Ensure Dashboard section is visible initially
         showSection('dashboard');
     });
 
-    function startPolling() {
-        if (pollingInterval) clearInterval(pollingInterval);
-        fetchDashboardData();
-        pollingInterval = setInterval(fetchDashboardData, 10000); // Poll every 10 seconds
-    }
 </script>
 </body>
 </html>

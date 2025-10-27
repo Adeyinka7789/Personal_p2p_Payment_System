@@ -69,9 +69,24 @@
                 </div>
                 <span class="text-2xl font-bold text-gray-800">PPPS Wallet</span>
             </div>
-            <a href="/admin/login" class="text-sm text-gray-600 hover:text-gray-800 font-medium transition">
-                Admin Access
-            </a>
+
+            <!-- Navigation Links Container -->
+            <div class="flex items-center space-x-4">
+                <!-- Dashboard Link - Hidden by default (shown only if 'authenticated') -->
+                <a id="dashboard-link" href="dashboard.html" class="hidden text-sm text-gray-600 hover:text-purple-600 font-medium transition px-3 py-1 rounded-lg hover:bg-gray-100">
+                    Dashboard
+                </a>
+
+                <!-- Sign In Link / Go to Dashboard Button - Defaulted to Sign In /login -->
+                <a id="sign-in-link" href="/login" class="text-sm bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition">
+                    Sign In
+                </a>
+
+                <!-- A placeholder for a potential Admin Access link, hidden by default -->
+                <a id="admin-link" href="/admin/login" class="hidden text-sm text-gray-600 hover:text-gray-800 font-medium transition">
+                    Admin Access
+                </a>
+            </div>
         </div>
     </nav>
 </header>
@@ -294,5 +309,55 @@
     </div>
 </footer>
 
+<script>
+    /**
+     * This function checks the authentication status and updates the navigation links accordingly.
+     * If unauthenticated, the main right button is "Sign In" and links to /login.
+     * If authenticated, the main right button is "Go to Dashboard" and links to dashboard.html,
+     * and the subtle "Dashboard" link is made visible.
+     * * To test: Open your browser console and run:
+     * - localStorage.setItem('__is_authenticated', 'true'); checkAuthLinks(); // To show Dashboard
+     * - localStorage.removeItem('__is_authenticated'); checkAuthLinks(); // To show Sign In
+     */
+    function checkAuthLinks() {
+        const dashboardLink = document.getElementById('dashboard-link');
+        const signInLink = document.getElementById('sign-in-link');
+        const adminLink = document.getElementById('admin-link');
+
+        // Check the mock authentication flag
+        const isAuthenticated = localStorage.getItem('__is_authenticated') === 'true';
+
+        if (isAuthenticated) {
+            // AUTHENTICATED STATE
+            // 1. Show the secondary Dashboard link
+            dashboardLink.classList.remove('hidden');
+
+            // 2. Change the primary button to 'Go to Dashboard'
+            signInLink.href = 'dashboard.html';
+            signInLink.textContent = 'Go to Dashboard';
+            // Ensure classes are correct (no need to change, but good to ensure consistency)
+            signInLink.className = 'text-sm bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition';
+
+            // 3. Admin link remains hidden
+            adminLink.classList.add('hidden');
+
+        } else {
+            // UNAUTHENTICATED STATE
+            // 1. Hide the secondary Dashboard link
+            dashboardLink.classList.add('hidden');
+
+            // 2. Change the primary button to 'Sign In' and ensure it points to /login
+            signInLink.href = '/login';
+            signInLink.textContent = 'Sign In';
+            signInLink.className = 'text-sm bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition';
+
+            // 3. Admin link remains hidden
+            adminLink.classList.add('hidden');
+        }
+    }
+
+    // Run the check when the page loads
+    document.addEventListener('DOMContentLoaded', checkAuthLinks);
+</script>
 </body>
 </html>
