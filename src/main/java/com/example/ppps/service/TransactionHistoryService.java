@@ -35,14 +35,18 @@ public class TransactionHistoryService {
         );
 
         return transactionPage.getContent().stream()
-                .map(t -> new TransactionHistoryResponse(
-                        t.getId(),
-                        t.getSenderWalletId(),
-                        t.getReceiverWalletId(),
-                        t.getAmount(),
-                        t.getStatus().name(),
-                        t.getInitiatedAt()
-                ))
-                .toList();  // Changed from .collect(Collectors.toList()) - Java 17 feature
+                .map(t -> {
+                    TransactionHistoryResponse response = new TransactionHistoryResponse();
+                    response.setTransactionId(t.getId());
+                    response.setSenderWalletId(t.getSenderWalletId());
+                    response.setReceiverWalletId(t.getReceiverWalletId());
+                    response.setAmount(t.getAmount());
+                    response.setStatus(t.getStatus().name());
+                    response.setInitiatedAt(t.getInitiatedAt());
+                    // Add narration if your Transaction entity has it
+                    // response.setNarration(t.getNarration());
+                    return response;
+                })
+                .toList();
     }
 }

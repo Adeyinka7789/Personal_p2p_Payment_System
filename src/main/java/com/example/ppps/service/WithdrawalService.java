@@ -7,7 +7,7 @@ import com.example.ppps.dto.WithdrawRequest;
 import com.example.ppps.entity.*;
 import com.example.ppps.enums.EntryType;
 import com.example.ppps.enums.TransactionStatus;
-import com.example.ppps.event.WithdrawalCompletedEvent; // <-- Added this import
+import com.example.ppps.event.WithdrawalCompletedEvent;
 import com.example.ppps.exception.*;
 import com.example.ppps.repository.*;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +21,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -174,22 +174,21 @@ public class WithdrawalService {
                 ledgerEntryRepository.saveAndFlush(feeEntry);
             }
 
-            // flush to ensure DB state before external call
-            // (EntityManager is not injected here; repositories saveAndFlush used)
-
             // 12. Call external gateway to send funds to bank
             String correlationId = UUID.randomUUID().toString();
             MDC.put("correlationId", correlationId);
+
+            // ✅ FIX: Use HashMap<String, Object> to allow null values (narration can be null)
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("bankName", request.getBankName());
+            metadata.put("accountNumber", request.getAccountNumber());
+            metadata.put("narration", request.getNarration()); // Can be null
 
             GatewayRequest gatewayRequest = GatewayRequest.builder()
                     .transactionId(tx.getId())
                     .amount(amount)
                     .currency(walletLocked.getCurrency())
-                    .metadata(Map.of(
-                            "bankName", request.getBankName(),
-                            "accountNumber", request.getAccountNumber(),
-                            "narration", request.getNarration()
-                    ))
+                    .metadata(metadata)
                     .build();
 
             GatewayResponse gatewayResponse = gatewayService.processWithdrawal(gatewayRequest);

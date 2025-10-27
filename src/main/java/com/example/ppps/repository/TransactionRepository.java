@@ -14,12 +14,19 @@ import java.util.UUID;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
-    @Query("SELECT t FROM Transaction t WHERE (t.senderWalletId = :walletId OR t.receiverWalletId = :walletId) " +
-            "AND (:startDate IS NULL OR t.initiatedAt >= :startDate) " +
-            "AND (:endDate IS NULL OR t.initiatedAt <= :endDate) " +
-            "AND (:status IS NULL OR t.status = :status) " +
-            "AND (:minAmount IS NULL OR t.amount >= :minAmount) " +  // FIXED: t.amount not t.minAmount
-            "AND (:maxAmount IS NULL OR t.amount <= :maxAmount)")
+
+    /**
+     * Find transactions by wallet ID with optional filters.
+     * Fixed: Use COALESCE to provide default values and avoid type inference issues.
+     */
+    @Query("SELECT t FROM Transaction t WHERE " +
+            "(t.senderWalletId = :walletId OR t.receiverWalletId = :walletId) " +
+            "AND t.initiatedAt >= COALESCE(:startDate, t.initiatedAt) " +
+            "AND t.initiatedAt <= COALESCE(:endDate, t.initiatedAt) " +
+            "AND (COALESCE(:status, '') = '' OR CAST(t.status AS string) = :status) " +
+            "AND t.amount >= COALESCE(:minAmount, t.amount) " +
+            "AND t.amount <= COALESCE(:maxAmount, t.amount) " +
+            "ORDER BY t.initiatedAt DESC")
     Page<Transaction> findByWalletIdWithFilters(
             @Param("walletId") UUID walletId,
             @Param("startDate") Instant startDate,
@@ -28,4 +35,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             @Param("minAmount") BigDecimal minAmount,
             @Param("maxAmount") BigDecimal maxAmount,
             Pageable pageable);
+
+    /**
+     * Simpler alternative: Find all transactions for a wallet without filters
+     */
+    @Query("SELECT t FROM Transaction t WHERE t.senderWalletId = :walletId OR t.receiverWalletId = :walletId ORDER BY t.initiatedAt DESC")
+    Page<Transaction> findByWalletId(@Param("walletId") UUID walletId, Pageable pageable);
 }

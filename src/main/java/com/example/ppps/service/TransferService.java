@@ -281,6 +281,8 @@ public class TransferService {
                     TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
+                            // MDC must be set here for the Kafka thread log
+                            MDC.put("correlationId", finalCorrelationId);
                             publishTransactionCompletedEvent(
                                     finalTransaction,
                                     finalSenderWalletId,
@@ -288,6 +290,7 @@ public class TransferService {
                                     finalAmount,
                                     finalCorrelationId
                             );
+                            MDC.clear(); // Clear it immediately after dispatch
                         }
 
                         @Override
@@ -334,6 +337,12 @@ public class TransferService {
             BigDecimal amount,
             String correlationId) {
 
+        // Note: correlationId is passed in, but we still ensure MDC is available for the log
+        String currentCorrelationId = MDC.get("correlationId");
+        if (currentCorrelationId == null) {
+            MDC.put("correlationId", correlationId);
+        }
+
         try {
             logger.info("📤 Publishing TransactionCompletedEvent to Kafka - Tx ID: {} | Topic: {}",
                     transaction.getId(), transactionCompletedTopic);
@@ -356,17 +365,22 @@ public class TransferService {
 
             // ✅ Add success/failure callbacks
             future.whenComplete((result, ex) -> {
+                // MDC is typically passed via the execution environment in Spring for Async calls,
+                // but explicitly logging the correlationId is best practice here for safety.
+                String completionCorrelationId = MDC.get("correlationId");
+
                 if (ex == null) {
-                    logger.info("✅ Kafka message sent successfully - Tx ID: {} | Partition: {} | Offset: {} | Topic: {}",
+                    logger.info("[{}] ✅ Kafka message sent successfully - Tx ID: {} | Partition: {} | Offset: {} | Topic: {}",
+                            completionCorrelationId,
                             transaction.getId(),
                             result.getRecordMetadata().partition(),
                             result.getRecordMetadata().offset(),
                             transactionCompletedTopic);
                 } else {
-                    logger.error("❌ Failed to publish Kafka message - Tx ID: {} | Topic: {} | CorrelationId: {} | Error: {}",
+                    logger.error("[{}] ❌ Failed to publish Kafka message - Tx ID: {} | Topic: {} | Error: {}",
+                            completionCorrelationId,
                             transaction.getId(),
                             transactionCompletedTopic,
-                            correlationId,
                             ex.getMessage(),
                             ex);
                     // IMPORTANT: Do NOT throw exception here - transaction already committed
@@ -376,13 +390,17 @@ public class TransferService {
 
         } catch (Exception e) {
             // ✅ Catch any synchronous exceptions to prevent breaking the flow
-            logger.error("❌ Exception during Kafka publish attempt - Tx ID: {} | Topic: {} | CorrelationId: {}",
+            logger.error("[{}] ❌ Exception during Kafka publish attempt - Tx ID: {} | Topic: {}",
+                    currentCorrelationId,
                     transaction.getId(),
                     transactionCompletedTopic,
-                    correlationId,
                     e);
             // Transaction is already committed - do NOT re-throw
             // Consider alerting ops team or implementing compensating actions
+        } finally {
+            if (currentCorrelationId == null) {
+                MDC.remove("correlationId");
+            }
         }
     }
 

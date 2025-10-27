@@ -1,5 +1,6 @@
 package com.example.ppps.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -29,5 +30,6 @@ public class User {
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "wallet_id", referencedColumnName = "id")
+    @JsonIgnore // 🔥 prevents circular serialization
     private Wallet wallet;
 }
