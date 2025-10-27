@@ -744,7 +744,7 @@ Content-Type: application/json
 
 #### 6. Check Balance
 ```http
-GET /api/v1/balance/{walletId}
+GET /api/v1/balance
 Authorization: Bearer {jwt_token}
 ```
 
