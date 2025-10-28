@@ -172,6 +172,7 @@
             <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-lg mx-auto">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">Fund Your Wallet</h2>
                 <form id="fund-form" class="space-y-6">
+                    <!-- Note: Source Bank and Reference ID are collected by the form but NOT sent to the backend as per your API spec for /funding -->
                     <div>
                         <label for="fund-amount" class="block text-sm font-medium text-gray-700">Amount (₦)</label>
                         <input type="number" id="fund-amount" name="amount" required min="100" step="0.01" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3" placeholder="e.g., 5000.00" aria-describedby="fund-amount-error">
@@ -248,6 +249,11 @@
                         <p id="send-amount-error" class="text-xs text-red-500 mt-1 hidden"></p>
                     </div>
                     <div>
+                        <label for="send-narration" class="block text-sm font-medium text-gray-700">Narration</label>
+                        <input type="text" id="send-narration" name="narration" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3" placeholder="e.g., Dinner reimbursement" aria-describedby="send-narration-error">
+                        <p id="send-narration-error" class="text-xs text-red-500 mt-1 hidden"></p>
+                    </div>
+                    <div>
                         <label for="send-pin" class="block text-sm font-medium text-gray-700">Secure PIN</label>
                         <input type="password" id="send-pin" name="securePin" required minlength="4" maxlength="6" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3" placeholder="Enter your PIN" aria-describedby="send-pin-error">
                         <p id="send-pin-error" class="text-xs text-red-500 mt-1 hidden"></p>
@@ -263,16 +269,18 @@
 
 <script>
     const API_BASE = "http://localhost:8081/api/v1";
-    const authToken = localStorage.getItem('authToken');
     let pollingInterval;
     let currentWalletId = null;
 
     // --- Utility Functions ---
 
     function getAuthHeaders() {
+        const liveAuthToken = localStorage.getItem('authToken');
+
         return {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
+            // Check if token exists before adding Authorization header
+            ...(liveAuthToken && { 'Authorization': `Bearer ${liveAuthToken}` })
         };
     }
 
@@ -361,40 +369,62 @@
     // --- API Functions ---
 
     async function fetchDashboardData() {
+        // Use Promise.all to load data concurrently
         await Promise.all([loadUserInfo(), loadWalletBalance(), loadTransactionHistory()]);
     }
 
     async function loadUserInfo() {
+        // NOTE: This endpoint is assumed as it was in the original code.
         try {
             const res = await fetch(`${API_BASE}/user/me`, { headers: getAuthHeaders() });
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            const { status, user } = await res.json();
-            if (status !== 'success' || !user) throw new Error('Failed to fetch user info');
+            const data = await res.json();
+            const { status, user } = data;
+
+            if (status !== 'success' || !user || !user.id || !user.phoneNumber) throw new Error('Failed to fetch user info');
+
             document.getElementById('user-info').textContent = user.phoneNumber;
             document.getElementById('phone-number').textContent = user.phoneNumber;
             document.getElementById('user-id-display').textContent = user.id;
-            localStorage.setItem('userId', user.id);
         } catch (error) {
             console.error("User info load error:", error);
             document.getElementById('user-info').textContent = 'Guest';
+            document.getElementById('phone-number').textContent = 'Error loading...';
+            document.getElementById('user-id-display').textContent = 'Error loading...';
             showToast('Failed to load user info', 'error');
+            if (error.message.includes('401') || !localStorage.getItem('authToken')) {
+                setTimeout(logout, 500);
+            }
         }
     }
 
     async function loadWalletBalance() {
         try {
+            // API Integration: GET /balance
             const res = await fetch(`${API_BASE}/balance`, { headers: getAuthHeaders() });
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            const { status, balance } = await res.json();
-            if (status !== 'success' || !balance) throw new Error('Failed to fetch balance');
+
+            if (!res.ok) {
+                if (res.status === 401) throw new Error('Authentication failed. Please log in again.');
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+
+            const data = await res.json();
+            const { status, balance } = data;
+
+            // CRITICAL FIX: Destructure nested balance object
+            if (status !== 'success' || !balance || !balance.walletId || typeof balance.amount === 'undefined') {
+                throw new Error('Failed to fetch balance or invalid response structure');
+            }
+
             currentWalletId = balance.walletId;
-            const balanceText = `₦${balance.amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+            // Format to NGN (₦)
+            const balanceText = `₦${parseFloat(balance.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
             document.getElementById('wallet-balance').innerHTML = balanceText;
             document.getElementById('wallet-id-display').textContent = `Wallet ID: ${balance.walletId}`;
         } catch (error) {
             console.error("Balance load error:", error);
             document.getElementById('wallet-balance').innerHTML = '₦0.00 <span class="text-red-500 text-base">(Error)</span>';
-            showToast('Failed to load balance', 'error');
+            showToast(error.message || 'Failed to load balance', 'error');
         }
     }
 
@@ -405,10 +435,18 @@
         tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">Loading...</td></tr>';
 
         try {
+            // NOTE: This endpoint is assumed. If your backend uses a different path, this must be updated.
             const res = await fetch(`${API_BASE}/transactions?pageNumber=0&pageSize=10`, { headers: getAuthHeaders() });
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            const { status, transactions } = await res.json();
-            if (status !== 'success') throw new Error('Failed to fetch transactions');
+
+            if (!res.ok) {
+                if (res.status === 401) throw new Error('Authentication failed. Please log in again.');
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+
+            const data = await res.json();
+            const { status, transactions } = data;
+
+            if (status !== 'success' || !Array.isArray(transactions)) throw new Error('Failed to fetch transactions');
 
             if (transactions.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No transactions yet.</td></tr>';
@@ -416,8 +454,9 @@
             }
 
             tbody.innerHTML = transactions.map(t => {
+                // Determine transaction direction and style
                 const isDebit = t.type === 'P2P_SENT' || t.type === 'WITHDRAWAL';
-                const typeText = t.type.replace('_', ' ');
+                const typeText = t.type.replace(/_/g, ' ');
                 const amountClass = isDebit ? 'text-red-600' : 'text-green-600';
                 const sign = isDebit ? '-' : '+';
                 let detailsText = t.narration || 'N/A';
@@ -426,7 +465,7 @@
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${new Date(t.createdAt).toLocaleDateString()}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">${typeText}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">${detailsText}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-right ${amountClass}">${sign}₦${t.amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-right ${amountClass}">${sign}₦${parseFloat(t.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
                         <td class="px-4 py-3 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${t.status === 'SUCCESS' ? 'bg-green-100 text-green-800' : (t.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800')}">
                                 ${t.status}
@@ -435,6 +474,9 @@
                     </tr>
                 `;
             }).join('');
+
+            // Update last activity time
+            document.getElementById('last-activity').textContent = new Date(transactions[0].createdAt).toLocaleString();
         } catch (error) {
             errorMsg.textContent = `Failed to load history: ${error.message}`;
             errorMsg.classList.remove('hidden');
@@ -450,6 +492,7 @@
         clearFormErrors('fund');
         const btn = document.getElementById('fund-button');
         const amount = parseFloat(e.target.amount.value);
+        // sourceBank and referenceId are collected but not sent to match your API spec:
         const sourceBank = e.target.sourceBank.value.trim();
         const referenceId = e.target.referenceId.value.trim();
 
@@ -457,16 +500,8 @@
             setFormError('fund-amount', 'Amount must be at least ₦100.');
             return;
         }
-        if (!sourceBank) {
-            setFormError('fund-source-bank', 'Source bank is required.');
-            return;
-        }
-        if (!referenceId) {
-            setFormError('fund-reference', 'Payment reference is required.');
-            return;
-        }
         if (!currentWalletId) {
-            setFormError('fund-amount', 'Wallet ID not loaded. Please try again.');
+            setFormError('fund-amount', 'Wallet ID not loaded. Please wait or refresh.');
             return;
         }
 
@@ -474,10 +509,14 @@
         btn.innerHTML = '<div class="spinner"></div> Funding...';
 
         try {
+            // API Integration: POST /funding (only sends walletId and amount)
             const response = await fetch(`${API_BASE}/funding`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
-                body: JSON.stringify({ walletId: currentWalletId, amount, sourceBank, referenceId })
+                body: JSON.stringify({
+                    walletId: currentWalletId,
+                    amount
+                })
             });
             const data = await response.json();
             if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Funding failed');
@@ -517,23 +556,26 @@
             setFormError('withdraw-pin', 'PIN must be 4-6 digits.');
             return;
         }
-        if (!currentWalletId) {
-            setFormError('withdraw-amount', 'Wallet ID not loaded. Please try again.');
-            return;
-        }
 
         btn.disabled = true;
         btn.innerHTML = '<div class="spinner"></div> Withdrawing...';
 
         try {
+            // API Integration: POST /withdrawals
             const response = await fetch(`${API_BASE}/withdrawals`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
-                body: JSON.stringify({ walletId: currentWalletId, amount, bankName, accountNumber, securePin, narration: narration || undefined })
+                body: JSON.stringify({
+                    amount,
+                    bankName,
+                    accountNumber,
+                    securePin,
+                    narration: narration || undefined
+                })
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Withdrawal failed');
-            showToast(`Withdrawal of ₦${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} submitted!`);
+            showToast(`Withdrawal of ₦${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} submitted! Check history for status.`);
             e.target.reset();
             fetchDashboardData();
         } catch (error) {
@@ -547,16 +589,21 @@
         e.preventDefault();
         clearFormErrors('send');
         const btn = document.getElementById('send-button');
-        const recipientPhone = e.target.recipientPhone.value.trim();
+        const receiverPhoneNumber = e.target.recipientPhone.value.trim();
         const amount = parseFloat(e.target.amount.value);
         const securePin = e.target.securePin.value.trim();
+        const narration = e.target.narration.value.trim(); // REQUIRED for transfers API
 
-        if (!/^\d{10,15}$/.test(recipientPhone)) {
+        if (!/^\d{10,15}$/.test(receiverPhoneNumber)) {
             setFormError('send-phone', 'Invalid phone number.');
             return;
         }
-        if (isNaN(amount) || amount < 10) {
-            setFormError('send-amount', 'Amount must be at least ₦10.');
+        if (isNaN(amount) || amount <= 10) {
+            setFormError('send-amount', 'Amount must be greater than ₦10.');
+            return;
+        }
+        if (narration.length < 3) {
+            setFormError('send-narration', 'Narration is required (min 3 chars).');
             return;
         }
         if (!/^\d{4,6}$/.test(securePin)) {
@@ -568,14 +615,22 @@
         btn.innerHTML = '<div class="spinner"></div> Sending...';
 
         try {
+            // API Integration: POST /transfers (includes narration and securePin)
             const response = await fetch(`${API_BASE}/transfers`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
-                body: JSON.stringify({ receiverPhoneNumber: recipientPhone, amount, securePin, narration: `Transfer to ${recipientPhone}` })
+                body: JSON.stringify({
+                    receiverPhoneNumber, // Mapped from recipientPhone
+                    amount,
+                    securePin,
+                    narration
+                })
             });
+
             const data = await response.json();
             if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Transfer failed');
-            showToast(`Sent ₦${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} to ${recipientPhone}!`);
+
+            showToast(`Sent ₦${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} to ${receiverPhoneNumber}!`);
             e.target.reset();
             fetchDashboardData();
         } catch (error) {
@@ -591,7 +646,11 @@
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
     document.addEventListener('DOMContentLoaded', () => {
-        if (!authToken) {
+        // Check for auth token on load
+        const initialAuthTokenCheck = localStorage.getItem('authToken');
+
+        if (!initialAuthTokenCheck) {
+            // Give a moment to ensure all scripts run, then redirect.
             setTimeout(logout, 100);
             return;
         }
@@ -603,17 +662,25 @@
             document.getElementById('theme-icon').setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
         }
 
-        // Initial data load
+        // Initialize form event listeners (which are already bound but ensure they are active)
+        document.getElementById('fund-form').addEventListener('submit', (e) => {});
+        document.getElementById('withdraw-form').addEventListener('submit', (e) => {});
+        document.getElementById('send-form').addEventListener('submit', (e) => {});
+
+        // Load data and set up polling
         fetchDashboardData();
+        pollingInterval = setInterval(fetchDashboardData, 60000); // Refresh data every 60 seconds
 
-        // Start polling for updates every 10 seconds (for balance and history)
-        if (pollingInterval) clearInterval(pollingInterval);
-        pollingInterval = setInterval(fetchDashboardData, 10000); // Poll every 10 seconds
-
-        // Ensure Dashboard section is visible initially
-        showSection('dashboard');
+        // Stop polling on visibility change to save resources
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                clearInterval(pollingInterval);
+            } else {
+                fetchDashboardData();
+                pollingInterval = setInterval(fetchDashboardData, 60000);
+            }
+        });
     });
-
 </script>
 </body>
 </html>

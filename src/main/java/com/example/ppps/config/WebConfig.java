@@ -19,8 +19,10 @@ public class WebConfig {
                         .allowedOriginPatterns(
                                 "http://localhost:*",
                                 "http://127.0.0.1:*",
-                                "null" // For files opened directly via file:// protocol
+                                "null", // For files opened directly via file:// protocol
+                                "https://ef957486f0d1.ngrok-free.app"
                         )
+                        .allowedMethods("")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);
