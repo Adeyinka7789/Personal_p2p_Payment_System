@@ -42,7 +42,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 - **Double-Entry Bookkeeping**: Immutable ledger entries for complete audit trail
 
 ### 💸 **Core Functionality**
-- ✅ **Instant P2P Transfers**: Send money using receiver's phone number or username
+- ✅ **Instant P2P Transfers**: Send money using receiver's phone number
 - ✅ **Wallet Funding**: Deposit via Paystack, Flutterwave (Card, Bank Transfer, USSD)
 - ✅ **Bank Withdrawals**: Withdraw funds to any Nigerian bank account
 - ✅ **Secure PIN Authentication**: Bcrypt-hashed PIN for transaction authorization
@@ -75,7 +75,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 │  (Mobile/Web)│
 └──────┬───────┘
        │ 1. POST /api/v1/funding
-       │    {amount: 10000, gateway: "PAYSTACK"}
+       │    {amount: 10000, walletId: "..."}
        ▼
 ┌─────────────────────┐
 │  Funding Controller │
@@ -117,7 +117,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 │  (₦10,000)   │                           │  (₦5,000)    │
 └──────┬───────┘                           └──────────────┘
        │ 1. POST /api/v1/transfers
-       │    {amount: 3000, receiver: "+234..."}
+       │    {amount: 3000, receiver: "234..."}
        ▼
 ┌─────────────────────┐
 │ Transfer Service    │
@@ -151,7 +151,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 │  (₦7,000)    │
 └──────┬───────┘
        │ 1. POST /api/v1/withdrawals
-       │    {amount: 5000, bank: "Access", account: "012..."}
+       │    {amount: 2500, bank: "First National", account: "001..."}
        ▼
 ┌─────────────────────┐
 │ Withdrawal Service  │
@@ -160,7 +160,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 │ 2. Verify PIN       │
 │ 3. Lock wallet      │
 │ 4. Check balance    │
-│ 5. Debit wallet     │──► Wallet: ₦7,000 - ₦5,000 - ₦50 (fee) = ₦1,950
+│ 5. Debit wallet     │──► Wallet: ₦7,000 - ₦2,500 - ₦50 (fee) = ₦4,450
 │ 6. Debit fee        │──► Platform fee: +₦50
 │ 7. COMMIT to DB     │
 └──────────┬──────────┘
@@ -168,7 +168,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
            ▼
 ┌─────────────────────┐
 │ Paystack Transfer   │
-│ API or Bank API     │──► 9. Send ₦5,000 to bank account
+│ API or Bank API     │──► 9. Send ₦2,500 to bank account
 └──────────┬──────────┘
            │ 10. Success/Failed
            ▼
@@ -183,7 +183,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 │  completed (Topic)  │
 └──────────┬──────────┘
            │
-           ├─────► 📧 SMS: "₦5,000 sent to Access Bank"
+           ├─────► 📧 SMS: "₦2,500 sent to bank"
            ├─────► 📊 Analytics: Withdrawal volume
            └─────► 🔍 Audit: Compliance logging
 ```
@@ -463,7 +463,7 @@ Or with Maven:
 mvn spring-boot:run
 ```
 
-The application will start on **http://localhost:8080**
+The application will start on **http://localhost:8081**
 
 ---
 
@@ -525,7 +525,7 @@ services:
       - redis
       - kafka
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ppps_db
       SPRING_DATASOURCE_USERNAME: ppps_user
@@ -554,7 +554,7 @@ docker-compose down
 
 ### Base URL
 ```
-http://localhost:8080/api/v1
+http://localhost:8081/api/v1
 ```
 
 ### **Authentication Endpoints**
@@ -565,11 +565,8 @@ POST /api/v1/register
 Content-Type: application/json
 
 {
-  "username": "johndoe",
-  "email": "john@example.com",
-  "phoneNumber": "+2349000000001",
-  "pin": "123456",
-  "fullName": "John Doe"
+  "phoneNumber": "2348012345678",
+  "pin": "1234"
 }
 ```
 
@@ -577,23 +574,21 @@ Content-Type: application/json
 ```json
 {
   "userId": "uuid-here",
-  "username": "johndoe",
-  "email": "john@example.com",
-  "phoneNumber": "+2349000000001",
+  "phoneNumber": "2348012345678",
   "walletId": "wallet-uuid-here",
   "balance": 0.00,
   "message": "User registered successfully"
 }
 ```
 
-#### 2. Login (supports username/email/phone/userId)
+#### 2. Login
 ```http
 POST /api/v1/auth/login
 Content-Type: application/json
 
 {
-  "identifier": "johndoe",  // or email, phone, userId
-  "pin": "123456"
+  "phoneNumber": "+2347030834157",
+  "pin": "7789"
 }
 ```
 
@@ -602,8 +597,7 @@ Content-Type: application/json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "userId": "uuid-here",
-  "username": "johndoe",
-  "email": "john@example.com",
+  "phoneNumber": "+2347030834157",
   "expiresIn": 86400000
 }
 ```
@@ -619,10 +613,10 @@ Authorization: Bearer {jwt_token}
 Content-Type: application/json
 
 {
-  "receiverPhoneNumber": "+2349000000002",
-  "amount": 5000.00,
-  "securePin": "123456",
-  "narration": "Payment for services"
+  "receiverPhoneNumber": "2347030834157",
+  "amount": 500.50,
+  "securePin": "7789",
+  "narration": "Dinner reimbursement"
 }
 ```
 
@@ -641,9 +635,9 @@ Content-Type: application/json
   "transactionId": "uuid-here",
   "senderWalletId": "sender-wallet-uuid",
   "receiverWalletId": "receiver-wallet-uuid",
-  "amount": 5000.00,
+  "amount": 500.50,
   "status": "SUCCESS",
-  "completedAt": "2025-10-22T10:30:00Z"
+  "completedAt": "2025-10-27T10:30:00Z"
 }
 ```
 
@@ -658,9 +652,8 @@ Authorization: Bearer {jwt_token}
 Content-Type: application/json
 
 {
-  "walletId": "uuid-here",
-  "amount": 10000.00,
-  "gateway": "PAYSTACK"  // or "FLUTTERWAVE"
+  "walletId": "c2df2774-04dd-4fd2-9d84-232ee9097dea",
+  "amount": 150000.50
 }
 ```
 
@@ -668,7 +661,7 @@ Content-Type: application/json
 ```json
 {
   "status": "success",
-  "message": "✅ Deposit successful for wallet: uuid-here",
+  "message": "✅ Deposit successful for wallet: c2df2774-04dd-4fd2-9d84-232ee9097dea",
   "authorizationUrl": "https://paystack.com/pay/xyz123",
   "reference": "TXN_REF_12345"
 }
@@ -694,38 +687,23 @@ Authorization: Bearer {jwt_token}
 Content-Type: application/json
 
 {
-  "amount": 10000.00,
-  "bankName": "Access Bank",
-  "accountNumber": "0123456789",
-  "accountName": "John Doe",
-  "securePin": "123456",
-  "narration": "Withdrawal to bank"
-}
-```
-
-#### 5. Withdraw to Bank Account
-```http
-POST /api/v1/withdrawals
-Authorization: Bearer {jwt_token}
-Content-Type: application/json
-
-{
-  "amount": 10000.00,
-  "bankName": "Access Bank",
-  "accountNumber": "0123456789",
-  "accountName": "John Doe",
-  "securePin": "123456",
-  "narration": "Withdrawal to bank"
+  "amount": 2500.00,
+  "accountNumber": "0012345678",
+  "bankName": "First National Bank",
+  "securePin": "7789"
 }
 ```
 
 **Response:**
 ```json
 {
-  "status": "success",
-  "message": "Withdrawal initiated successfully",
-  "transactionId": "uuid-here",
-  "estimatedTime": "5-10 minutes"
+  "transactionRef": "TXN-1761601094077",
+  "amount": 2500.00,
+  "accountNumber": "0012345678",
+  "bankName": "First National Bank",
+  "status": "PENDING",
+  "createdAt": "2025-10-27T21:38:14.077445900Z",
+  "message": "Withdrawal request accepted. Funds transfer is now processing asynchronously."
 }
 ```
 
@@ -751,9 +729,12 @@ Authorization: Bearer {jwt_token}
 **Response:**
 ```json
 {
-  "walletId": "uuid-here",
-  "balance": 15000.00,
-  "currency": "NGN"
+  "balance": {
+    "walletId": "c2df2774-04dd-4fd2-9d84-232ee9097dea",
+    "amount": 299442.99,
+    "currency": "NGN"
+  },
+  "status": "success"
 }
 ```
 
@@ -772,9 +753,9 @@ Authorization: Bearer {jwt_token}
       "type": "TRANSFER",
       "senderWalletId": "uuid",
       "receiverWalletId": "uuid",
-      "amount": 5000.00,
+      "amount": 500.50,
       "status": "SUCCESS",
-      "initiatedAt": "2025-10-22T00:00:00Z"
+      "initiatedAt": "2025-10-27T00:00:00Z"
     }
   ],
   "pageNumber": 0,
@@ -789,7 +770,7 @@ Authorization: Bearer {jwt_token}
 
 Access Swagger UI at:
 ```
-http://localhost:8080/swagger-ui.html
+http://localhost:8081/swagger-ui.html
 ```
 
 ---
@@ -803,12 +784,12 @@ http://localhost:8080/swagger-ui.html
 │      User       │       │     Wallet      │
 ├─────────────────┤       ├─────────────────┤
 │ userId (PK)     │──────▶│ id (PK)         │
-│ username        │   1:1 │ userId (FK)     │
-│ email           │       │ balance         │
-│ phoneNumber     │       │ currency        │
-│ hashedPin       │       │ version         │
-│ wallet_id (FK)  │       └─────────────────┘
-└─────────────────┘               │
+│ phoneNumber     │   1:1 │ userId (FK)     │
+│ hashedPin       │       │ balance         │
+│ wallet_id (FK)  │       │ currency        │
+│ createdAt       │       │ version         │
+└─────────────────┘       └─────────────────┘
+                                  │
                                   │ 1:M
                                   ▼
                           ┌─────────────────┐
@@ -961,9 +942,9 @@ if (!signature.equals(computedHash)) {
 
 ### **Authentication Flow**
 
-1. User registers with username/email/phone and PIN
+1. User registers with phone number and PIN
 2. PIN is hashed using Bcrypt (cost factor: 10)
-3. User logs in with any identifier (username/email/phone/userId)
+3. User logs in with phone number
 4. JWT token issued (expires in 24 hours)
 5. All protected endpoints require `Authorization: Bearer {token}`
 
@@ -971,7 +952,7 @@ if (!signature.equals(computedHash)) {
 
 - ✅ **JWT Stateless Authentication**
 - ✅ **Bcrypt Password Hashing**
-- ✅ **Multi-factor Identifier Login** (username/email/phone/userId)
+- ✅ **Phone-based Authentication**
 - ✅ **CSRF Protection Disabled** (API-only, token-based auth)
 - ✅ **Rate Limiting** (100 requests/minute per IP)
 - ✅ **SQL Injection Protection** (JPA Parameterized Queries)
@@ -1051,12 +1032,12 @@ docker-compose logs -f app | grep "Kafka"
 
 ### **Health Check**
 ```bash
-curl http://localhost:8080/actuator/health
+curl http://localhost:8081/actuator/health
 ```
 
 ### **Prometheus Metrics**
 ```bash
-curl http://localhost:8080/actuator/prometheus
+curl http://localhost:8081/actuator/prometheus
 ```
 
 ### **Kafka Metrics**
