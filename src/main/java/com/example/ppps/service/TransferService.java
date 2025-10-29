@@ -240,13 +240,14 @@ public class TransferService {
                         senderOldBalance, senderWalletLocked.getBalance(),
                         receiverOldBalance, requiresEscrow ? receiverOldBalance : receiverWalletLocked.getBalance());
 
-// ========================================
-// 8️⃣ Create Transaction Record with Escrow Status
-// ========================================
+                // ========================================
+                // 8️⃣ Create Transaction Record with Escrow Status
+                // ========================================
                 Transaction transaction = new Transaction();
                 transaction.setSenderWalletId(senderWalletId);
                 transaction.setReceiverWalletId(receiverWalletId);
                 transaction.setAmount(amount);
+                transaction.setInitiatedAt(Instant.now());
 
 // Set status based on escrow
                 if (requiresEscrow) {
@@ -264,7 +265,6 @@ public class TransferService {
                 }
 
                 logger.info("📝 Transaction record created - ID: {}", transaction.getId());
-
 // ========================================
 // 9️⃣ Create Ledger Entries (Double-Entry Bookkeeping)
 // ========================================

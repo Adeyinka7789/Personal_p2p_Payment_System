@@ -155,10 +155,11 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                         </thead>
                         <tbody id="transaction-history-body" class="bg-white divide-y divide-gray-200">
-                        <tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">Loading transactions...</td></tr>
+                        <tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">Loading transactions...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -410,7 +411,14 @@
     async function fetchDashboardData() {
         console.log('Fetching dashboard data...');
         try {
-            await Promise.all([loadWalletBalance(), loadTransactionHistory()]);
+            // ✅ FIXED: Run sequentially, not in parallel
+            console.log('Step 1: Loading wallet balance...');
+            await loadWalletBalance();      // This sets currentWalletId FIRST
+
+            console.log('Step 2: Loading transaction history...');
+            await loadTransactionHistory(); // This uses currentWalletId SECOND
+
+            console.log('✅ Dashboard data loaded successfully');
         } catch (error) {
             console.error('Dashboard data fetch failed:', error);
         }
@@ -477,49 +485,50 @@
 }
 
     async function loadWalletBalance() {
-        console.log('Loading wallet balance...');
-        try {
-            const response = await fetch(`${API_BASE}/balance`, {
-                headers: getAuthHeaders(),
-                credentials: 'include' // ADDED: Important for CORS with credentials
-            });
+    console.log('Loading wallet balance...');
+    try {
+        const response = await fetch(`${API_BASE}/balance`, {
+            headers: getAuthHeaders(),
+            credentials: 'include'
+        });
 
-            console.log('Balance response status:', response.status);
+        console.log('Balance response status:', response.status);
 
-            if (!response.ok) {
-                if (response.status === 401) throw new Error('Authentication failed');
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Balance API Response:', data);
-
-            // FIXED: Match your actual API response structure
-            // Your response has { "balance": { "walletId": "...", "amount": ..., "currency": "..." }, "status": "success" }
-            const { status, balance } = data;
-
-            if (status !== 'success' || !balance) {
-                console.error('Invalid balance response structure:', data);
-                throw new Error('Invalid balance response structure');
-            }
-
-            // Extract from the nested balance object
-            currentWalletId = balance.walletId;
-            const amount = balance.amount || 0;
-            const balanceText = `₦${parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-
-            document.getElementById('wallet-balance').innerHTML = balanceText;
-            document.getElementById('wallet-id-display').textContent = `Wallet ID: ${balance.walletId || 'N/A'}`;
-
-            console.log('Balance loaded successfully:', balanceText);
-
-        } catch (error) {
-            console.error("Balance load error:", error);
-            document.getElementById('wallet-balance').innerHTML = '₦0.00 <span class="text-red-500 text-base">(Error)</span>';
-            document.getElementById('wallet-id-display').textContent = 'Wallet ID: Error';
-            showToast('Failed to load balance: ' + error.message, 'error');
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('Authentication failed');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+        console.log('Balance API Response:', data);
+
+        const { status, balance } = data;
+
+        if (status !== 'success' || !balance) {
+            console.error('Invalid balance response structure:', data);
+            throw new Error('Invalid balance response structure');
+        }
+
+        // Extract from the nested balance object
+        currentWalletId = balance.walletId; // Ensure this is set
+        const amount = balance.amount || 0;
+        const balanceText = `₦${parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+
+        document.getElementById('wallet-balance').innerHTML = balanceText;
+        document.getElementById('wallet-id-display').textContent = `Wallet ID: ${balance.walletId || 'N/A'}`;
+
+        console.log('Balance loaded successfully. Wallet ID:', currentWalletId);
+
+        return currentWalletId; // Return the wallet ID
+
+    } catch (error) {
+        console.error("Balance load error:", error);
+        document.getElementById('wallet-balance').innerHTML = '₦0.00 <span class="text-red-500 text-base">(Error)</span>';
+        document.getElementById('wallet-id-display').textContent = 'Wallet ID: Error';
+        showToast('Failed to load balance: ' + error.message, 'error');
+        return null;
     }
+}
 
     async function loadTransactionHistory() {
     console.log('Loading transaction history...');
@@ -527,10 +536,22 @@
     const errorMsg = document.getElementById('history-error');
 
     errorMsg.classList.add('hidden');
-    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">Loading transactions...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">Loading transactions...</td></tr>';
 
     try {
-        const response = await fetch(`${API_BASE}/transactions`, {
+        // Check if wallet ID is available
+        if (!currentWalletId) {
+            console.warn('Wallet ID not available, trying to load balance first...');
+            await loadWalletBalance();
+
+            if (!currentWalletId) {
+                throw new Error('Wallet ID not available after loading balance');
+            }
+        }
+
+        console.log('Loading transactions for wallet:', currentWalletId);
+
+        const response = await fetch(`${API_BASE}/transactions/${currentWalletId}`, {
             headers: getAuthHeaders(),
             credentials: 'include'
         });
@@ -539,34 +560,55 @@
 
         if (!response.ok) {
             if (response.status === 401) throw new Error('Authentication failed');
+            if (response.status === 404) throw new Error('Wallet not found');
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        console.log('Transactions API Response:', data);
+        const transactions = await response.json();
+        console.log('Transactions API Response:', transactions);
 
-        const { status, transactions } = data;
-
-        if (status !== 'success' || !Array.isArray(transactions)) {
-            throw new Error('Invalid transactions response');
+        if (!Array.isArray(transactions)) {
+            throw new Error('Invalid transactions response - expected array');
         }
 
+        // ADD THIS DEBUG - Log each transaction structure
+        console.log('🔍 INDIVIDUAL TRANSACTION STRUCTURES:');
+        transactions.forEach((t, index) => {
+            console.log(`Transaction ${index}:`, {
+                transactionId: t.transactionId,
+                status: t.status,
+                senderWalletId: t.senderWalletId,
+                receiverWalletId: t.receiverWalletId,
+                amount: t.amount,
+                initiatedAt: t.initiatedAt,
+                narration: t.narration
+            });
+        });
+
         if (transactions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No transactions yet.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">No transactions yet.</td></tr>';
             document.getElementById('last-activity').textContent = 'N/A';
             return;
         }
 
         // Map to your actual transaction response structure
         tbody.innerHTML = transactions.map(t => {
-            const isDebit = t.type === 'P2P_SENT';
-            const typeText = t.type?.replace(/_/g, ' ') || 'Unknown';
+            // Check if this is a debit transaction (sent from current wallet)
+            const isDebit = t.senderWalletId && t.senderWalletId === currentWalletId;
+            const typeText = isDebit ? 'P2P SENT' : 'P2P RECEIVED';
             const amountClass = isDebit ? 'text-red-600' : 'text-green-600';
             const sign = isDebit ? '-' : '+';
-            const detailsText = t.narration || 'Transaction';
+            const detailsText = isDebit ? 'Money Sent' : 'Money Received';
             const amount = parseFloat(t.amount || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            const date = t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'N/A';
+
+            // Use initiatedAt from your DTO
+            const date = t.initiatedAt ? new Date(t.initiatedAt).toLocaleDateString() : 'N/A';
             const status = t.status || 'UNKNOWN';
+
+            // NEW: Check if transaction can be cancelled (PENDING escrow within 30 minutes)
+            // Only show cancel for debit transactions (sent from this wallet)
+            const canCancel = isDebit && canTransactionBeCancelled(t);
+            const timeRemaining = isDebit ? getTimeRemaining(t) : '';
 
             return `
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-600">
@@ -579,13 +621,22 @@
                             ${status}
                         </span>
                     </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm">
+                        ${canCancel ? `
+                            <button onclick="cancelTransaction('${t.transactionId}', ${t.amount})"
+                                    class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-medium transition duration-150">
+                                Cancel
+                            </button>
+                            ${timeRemaining ? `<div class="text-xs text-gray-500 mt-1">${timeRemaining}</div>` : ''}
+                        ` : ''}
+                    </td>
                 </tr>
             `;
         }).join('');
 
         // Update last activity from the most recent transaction
-        if (transactions[0]?.createdAt) {
-            document.getElementById('last-activity').textContent = new Date(transactions[0].createdAt).toLocaleString();
+        if (transactions[0]?.initiatedAt) {
+            document.getElementById('last-activity').textContent = new Date(transactions[0].initiatedAt).toLocaleString();
         } else {
             document.getElementById('last-activity').textContent = 'N/A';
         }
@@ -596,17 +647,148 @@
         if (error.message.includes('Failed to fetch')) {
             // Network error - backend might be down
             errorMsg.textContent = 'Cannot connect to server. Please check if backend is running.';
-            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-red-500">Backend connection failed</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-red-500">Backend connection failed</td></tr>';
+        } else if (error.message.includes('Wallet ID not available')) {
+            errorMsg.textContent = 'Wallet information not available. Please refresh the page.';
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">Wallet not loaded</td></tr>';
         } else {
             // Other errors - show empty state
             errorMsg.textContent = `Failed to load history: ${error.message}`;
-            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No transactions available</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">No transactions available</td></tr>';
         }
 
         errorMsg.classList.remove('hidden');
         document.getElementById('last-activity').textContent = 'N/A';
     }
 }
+
+// NEW: Check if transaction can be cancelled
+function canTransactionBeCancelled(transaction) {
+    if (transaction.status !== 'PENDING') return false;
+
+    // Use initiatedAt from your DTO
+    const initiatedAt = new Date(transaction.initiatedAt);
+    const now = new Date();
+    const timeDiff = (now - initiatedAt) / (1000 * 60); // difference in minutes
+
+    return timeDiff < 30; // Within 30-minute cancellation window
+}
+
+// NEW: Calculate time remaining for cancellation
+function getTimeRemaining(transaction) {
+    if (transaction.status !== 'PENDING') return '';
+
+    // Use initiatedAt from your DTO
+    const initiatedAt = new Date(transaction.initiatedAt);
+    const now = new Date();
+    const timeDiff = (now - initiatedAt) / (1000 * 60); // difference in minutes
+    const timeRemaining = 30 - timeDiff;
+
+    if (timeRemaining <= 0) return 'Expired';
+
+    const minutes = Math.floor(timeRemaining);
+    const seconds = Math.floor((timeRemaining - minutes) * 60);
+
+    return `${minutes}m ${seconds}s`;
+}
+
+// NEW: Cancel transaction function
+async function cancelTransaction(transactionId, amount) {
+    if (!confirm(`Are you sure you want to cancel this transaction of ₦${amount}?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/transactions/${transactionId}/cancel`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Cancellation failed');
+        }
+
+        showToast('Transaction cancelled successfully!', 'success');
+
+        // Refresh the transaction history to update the UI
+        loadTransactionHistory();
+        // Also refresh balance since funds might be returned
+        loadWalletBalance();
+
+    } catch (error) {
+        console.error('Cancellation error:', error);
+        showToast(error.message || 'Failed to cancel transaction', 'error');
+    }
+}
+
+// NEW: Update countdown timers every 30 seconds
+function startCountdownUpdates() {
+    setInterval(() => {
+        const cancelButtons = document.querySelectorAll('[onclick^="cancelTransaction"]');
+        if (cancelButtons.length > 0) {
+            // If there are cancellable transactions, refresh the list to update timers
+            loadTransactionHistory();
+        }
+    }, 30000); // Update every 30 seconds
+}
+
+// ✅ FIXED: Sequential initialization
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Dashboard initializing...');
+
+    // Check authentication
+    const authToken = getAuthToken();
+    if (!authToken) {
+        console.error('No authentication token found');
+        showToast('Please login to access dashboard', 'error');
+        setTimeout(() => window.location.href = '/login', 2000);
+        return;
+    }
+
+    console.log('Auth token found, user ID:', getUserIdFromToken(authToken));
+
+    // Set theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.getElementById('theme-root').classList.add(savedTheme);
+    if (savedTheme === 'dark') {
+        document.getElementById('theme-icon').setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
+    }
+
+    // ✅ CORRECT SEQUENTIAL INITIALIZATION:
+    async function initializeDashboard() {
+        console.log('Step 1: Loading user info...');
+        await loadUserInfo();
+
+        console.log('Step 2: Fetching dashboard data...');
+        await fetchDashboardData(); // This runs loadWalletBalance → loadTransactionHistory sequentially
+
+        console.log('Step 3: Starting polling interval...');
+        pollingInterval = setInterval(fetchDashboardData, 60000);
+
+        console.log('Step 4: Starting countdown updates...');
+        startCountdownUpdates();
+
+        console.log('✅ Dashboard fully initialized');
+    }
+
+    // Start the sequential initialization
+    initializeDashboard().catch(error => {
+        console.error('Dashboard initialization failed:', error);
+    });
+
+    // Handle visibility change
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(pollingInterval);
+        } else {
+            fetchDashboardData();
+            pollingInterval = setInterval(fetchDashboardData, 60000);
+        }
+    });
+});
 
     // --- Form Handlers ---
     document.getElementById('fund-form').addEventListener('submit', async (e) => {
@@ -972,43 +1154,6 @@ async function loadSettingsData() {
     // --- Initialization ---
     document.getElementById('logout-button').addEventListener('click', logout);
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('Dashboard initializing...');
-
-        // Check authentication
-        const authToken = getAuthToken();
-        if (!authToken) {
-            console.error('No authentication token found');
-            showToast('Please login to access dashboard', 'error');
-            setTimeout(() => window.location.href = '/login', 2000);
-            return;
-        }
-
-        console.log('Auth token found, user ID:', getUserIdFromToken(authToken));
-
-        // Set theme
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.getElementById('theme-root').classList.add(savedTheme);
-        if (savedTheme === 'dark') {
-            document.getElementById('theme-icon').setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
-        }
-
-        // Load user info from token and dashboard data
-        loadUserInfo();
-        fetchDashboardData();
-        pollingInterval = setInterval(fetchDashboardData, 60000);
-
-        // Handle visibility change
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                clearInterval(pollingInterval);
-            } else {
-                fetchDashboardData();
-                pollingInterval = setInterval(fetchDashboardData, 60000);
-            }
-        });
-    });
 
     // Debug functions
     window.debugAuth = {
