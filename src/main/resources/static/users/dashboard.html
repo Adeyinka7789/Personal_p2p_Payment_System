@@ -236,7 +236,7 @@
                 <form id="send-form" class="space-y-6">
                     <div>
                         <label for="send-phone" class="block text-sm font-medium text-gray-700">Recipient Phone Number</label>
-                        <input type="tel" id="send-phone" name="recipientPhone" required pattern="[0-9]{10,15}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3" placeholder="e.g., 2348012345678" aria-describedby="send-phone-error">
+                        <input type="tel" id="send-phone" name="recipientPhone" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3" placeholder="e.g., +2348012345678 or 08012345678" aria-describedby="send-phone-error">
                         <p id="send-phone-error" class="text-xs text-red-500 mt-1 hidden"></p>
                     </div>
                     <div>
@@ -264,7 +264,14 @@
 </div>
 
 <script>
-    const API_BASE = "http://localhost:8081/api/v1";
+    const getApiBase = () => {
+    if (window.location.hostname.includes('ngrok-free.app')) {
+        return `${window.location.protocol}//${window.location.hostname}/api/v1`;
+    } else {
+        return 'http://localhost:8081/api/v1';
+    }
+    };
+    const API_BASE = getApiBase();
     let pollingInterval;
     let currentWalletId = null;
     let currentUserId = null;
@@ -652,10 +659,12 @@
         const securePin = e.target.securePin.value.trim();
         const narration = e.target.narration.value.trim();
 
-        if (!/^\d{10,15}$/.test(receiverPhoneNumber)) {
-            setFormError('send-phone', 'Invalid phone number.');
+        const cleanPhoneNumber = receiverPhoneNumber.replace(/\s/g, '');
+
+        if (!/^(\+?234|0)[789][01]\d{8}$/.test(cleanPhoneNumber)) {
+            setFormError('send-phone', 'Invalid Nigerian phone number format.');
             return;
-        }
+            }
         if (isNaN(amount) || amount <= 10) {
             setFormError('send-amount', 'Amount must be greater than ₦10.');
             return;

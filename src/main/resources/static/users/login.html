@@ -42,6 +42,11 @@
             transform: translateY(-1px);
         }
 
+        .input-error {
+            border-color: #dc2626;
+            background: #1f1a1a;
+        }
+
         .btn-primary {
             background: #ffffff;
             color: #000000;
@@ -60,6 +65,13 @@
 
         .btn-primary:active {
             transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            background: #666666;
+            color: #999999;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .spinner {
@@ -134,6 +146,12 @@
             0%, 100% { transform: translateY(0px) rotate(0deg); }
             50% { transform: translateY(-20px) rotate(180deg); }
         }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body class="text-white">
@@ -166,10 +184,10 @@
                             id="phoneNumber"
                             name="phoneNumber"
                             required
-                            pattern="^\+?[0-9]{10,15}$"
-                            placeholder="+2348012345678"
+                            placeholder="+2348012345678 or 08012345678"
                             class="input-modern w-full px-4 py-3 rounded-lg focus:outline-none text-white placeholder-gray-500">
-                    <p class="text-xs text-gray-500 mt-2">Include country code (e.g., +2348012345678)</p>
+                    <div id="phone-error" class="error-message hidden"></div>
+                    <p class="text-xs text-gray-500 mt-2">Valid Nigerian numbers only (+234, 234, or 0 formats)</p>
                 </div>
 
                 <div class="mb-6">
@@ -207,10 +225,52 @@
 </div>
 
 <script>
-    const API_BASE = "http://localhost:8081/api/v1";
+    const getApiBase = () => {
+        if (window.location.hostname.includes('ngrok-free.app')) {
+            return `${window.location.protocol}//${window.location.hostname}/api/v1`;
+        } else {
+            return 'http://localhost:8081/api/v1';
+        }
+    };
+    const API_BASE = getApiBase();
     const messageElement = document.getElementById('message');
     const loginButton = document.getElementById('loginButton');
     const loginForm = document.getElementById('loginForm');
+
+    // Nigerian phone number validation (same as registration)
+    function validateNigerianPhone(phone) {
+        const cleanPhone = phone.replace(/\s/g, '');
+        return /^(\+?234|0)[789][01]\d{8}$/.test(cleanPhone);
+    }
+
+    // Show error message
+    function showError(inputId, message) {
+        const errorElement = document.getElementById(inputId + '-error');
+        const inputElement = document.getElementById(inputId);
+
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+        }
+
+        if (inputElement) {
+            inputElement.classList.add('input-error');
+        }
+    }
+
+    // Clear error message
+    function clearError(inputId) {
+        const errorElement = document.getElementById(inputId + '-error');
+        const inputElement = document.getElementById(inputId);
+
+        if (errorElement) {
+            errorElement.classList.add('hidden');
+        }
+
+        if (inputElement) {
+            inputElement.classList.remove('input-error');
+        }
+    }
 
     function displayMessage(text, isError = false) {
         messageElement.textContent = text;
@@ -218,11 +278,35 @@
         messageElement.classList.remove('hidden');
     }
 
+    // Real-time phone validation
+    document.getElementById('phoneNumber').addEventListener('blur', function() {
+        const phone = this.value.trim();
+        if (phone && !validateNigerianPhone(phone)) {
+            showError('phone', 'Invalid Nigerian phone number format. Use +234, 234, or 0 formats.');
+        } else {
+            clearError('phone');
+        }
+    });
+
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
         const phoneNumber = document.getElementById('phoneNumber').value.trim();
         const pin = document.getElementById('pin').value.trim();
+
+        // Clear previous errors
+        clearError('phone');
+
+        // Validation
+        if (!validateNigerianPhone(phoneNumber)) {
+            showError('phone', 'Invalid Nigerian phone number format. Use +234, 234, or 0 formats.');
+            return;
+        }
+
+        if (!/^\d{4}$/.test(pin)) {
+            displayMessage('PIN must be exactly 4 digits.', true);
+            return;
+        }
 
         loginButton.disabled = true;
         loginButton.innerHTML = '<div class="spinner"></div> Authenticating...';

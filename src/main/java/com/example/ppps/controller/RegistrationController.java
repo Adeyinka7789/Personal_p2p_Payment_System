@@ -14,12 +14,6 @@ public class RegistrationController {
     @Autowired
     private RegistrationService registrationService;
 
-    @PostMapping("/register")
-    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegistrationRequest request) {
-        RegistrationResponse response = registrationService.registerUser(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
-    }
-
     @PostMapping("/reset-pin/{userId}")
     public ResponseEntity<Void> resetPin(@PathVariable String userId, @Valid @RequestBody PinResetRequest request) {
         registrationService.resetPin(userId, request);

@@ -25,6 +25,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String phoneNumber;
 
+    @Column(nullable = true, unique = true) // Make email optional and unique
+    private String email;
+
     @Column(nullable = false)
     private String hashedPin;
 

@@ -28,6 +28,20 @@ public class UserService {
     }
 
     /**
+     * Find a user by email
+     */
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    /**
+     * Check if email exists
+     */
+    public boolean emailExists(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    /**
      * Save or update user
      */
     public User save(User user) {

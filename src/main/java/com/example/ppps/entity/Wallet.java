@@ -2,9 +2,12 @@ package com.example.ppps.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -28,12 +31,17 @@ public class Wallet {
     @Column(nullable = false)
     private String currency;
 
-    @Version
-    private Long version;
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private Instant updatedAt;
 
     // Default constructor (required by JPA)
     public Wallet() {
         this.balance = BigDecimal.ZERO;
-        this.currency = "USD"; // Default currency assumption
+        this.currency = "NGN";
     }
 }

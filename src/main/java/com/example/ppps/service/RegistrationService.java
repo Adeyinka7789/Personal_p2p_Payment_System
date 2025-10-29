@@ -45,7 +45,6 @@ public class RegistrationService {
         wallet.setUserId(UUID.fromString(user.getUserId()));
         wallet.setBalance(BigDecimal.ZERO);
         wallet.setCurrency("NGN");
-        wallet.setVersion(0L);
         wallet = walletRepository.save(wallet);
 
         user.setWallet(wallet);

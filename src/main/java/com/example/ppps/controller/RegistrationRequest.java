@@ -1,5 +1,6 @@
 package com.example.ppps.controller;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -10,6 +11,9 @@ public class RegistrationRequest {
     @NotBlank(message = "Phone number is required")
     @Pattern(regexp = "^\\+?[1-9]\\d{9,14}$", message = "Invalid phone number format")
     private String phoneNumber;
+
+    @Email(message = "Invalid email format")
+    private String email; // Optional email field
 
     @NotBlank(message = "PIN is required")
     @Size(min = 4, max = 6, message = "PIN must be 4-6 digits")
