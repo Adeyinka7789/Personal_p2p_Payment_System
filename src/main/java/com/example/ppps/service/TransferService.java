@@ -35,7 +35,6 @@ import java.util.concurrent.CompletableFuture;
 public class TransferService {
 
     private static final Logger logger = LoggerFactory.getLogger(TransferService.class);
-
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
@@ -47,8 +46,7 @@ public class TransferService {
     private final GatewayService gatewayService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final UUID platformWalletId;
-
-    // ✅ FIX #1: Use configurable topic from application.properties
+    private final EscrowService escrowService;
     @Value("${app.kafka.topic.transactions.completed:transactions.completed}")
     private String transactionCompletedTopic;
 
@@ -63,6 +61,7 @@ public class TransferService {
             FeeService feeService,
             GatewayService gatewayService,
             KafkaTemplate<String, Object> kafkaTemplate,
+            EscrowService escrowService,
             @Value("${app.platform-wallet-id}") String platformWalletIdStr) {
 
         this.walletRepository = walletRepository;
@@ -74,6 +73,7 @@ public class TransferService {
         this.feeService = feeService;
         this.gatewayService = gatewayService;
         this.kafkaTemplate = kafkaTemplate;
+        this.escrowService = escrowService;
 
         this.transferTimer = Timer.builder("ppps.transfer.duration")
                 .description("Time taken to process a P2P transfer")
@@ -195,51 +195,102 @@ public class TransferService {
                     );
                 }
 
-                // ========================================
-                // 7️⃣ Update Balances (ACID Transaction)
-                // ========================================
+// ========================================
+// 7️⃣ Escrow Check & Balance Updates
+// ========================================
+                boolean requiresEscrow = escrowService.requiresEscrow(amount);
+
                 BigDecimal senderOldBalance = senderWalletLocked.getBalance();
                 BigDecimal receiverOldBalance = receiverWalletLocked.getBalance();
 
-                senderWalletLocked.setBalance(senderWalletLocked.getBalance().subtract(totalDebit));
-                receiverWalletLocked.setBalance(receiverWalletLocked.getBalance().add(amount));
+                if (requiresEscrow) {
+                    // For escrow: Only deduct fee immediately, hold principal amount
+                    logger.info("🔄 Transfer requires escrow - Amount: {}", amount);
 
-                if (platformWallet != null) {
-                    platformWallet.setBalance(platformWallet.getBalance().add(fee));
+                    // Deduct only the fee immediately (principal remains in sender's wallet)
+                    senderWalletLocked.setBalance(senderWalletLocked.getBalance().subtract(fee));
+
+                    logger.info("💰 Escrow setup - Fee deducted: {}, Principal held: {}", fee, amount);
+
+                } else {
+                    // Instant transfer: Deduct full amount immediately
+                    senderWalletLocked.setBalance(senderWalletLocked.getBalance().subtract(totalDebit));
+                    receiverWalletLocked.setBalance(receiverWalletLocked.getBalance().add(amount));
+
+                    logger.info("⚡ Instant transfer - Total debit: {}, Receiver credit: {}", totalDebit, amount);
                 }
 
+// Platform fee is always deducted immediately (for both escrow and instant)
+                if (platformWallet != null && fee.compareTo(BigDecimal.ZERO) > 0) {
+                    platformWallet.setBalance(platformWallet.getBalance().add(fee));
+                    logger.info("🏦 Platform fee collected: {}", fee);
+                }
+
+// Save wallet updates
                 walletRepository.saveAndFlush(senderWalletLocked);
-                walletRepository.saveAndFlush(receiverWalletLocked);
+                if (!requiresEscrow) {
+                    // Only update receiver wallet for instant transfers
+                    walletRepository.saveAndFlush(receiverWalletLocked);
+                }
                 if (platformWallet != null) {
                     walletRepository.saveAndFlush(platformWallet);
                 }
 
                 logger.info("💸 Balances updated - Sender: {} → {} | Receiver: {} → {}",
                         senderOldBalance, senderWalletLocked.getBalance(),
-                        receiverOldBalance, receiverWalletLocked.getBalance());
+                        receiverOldBalance, requiresEscrow ? receiverOldBalance : receiverWalletLocked.getBalance());
 
-                // ========================================
-                // 8️⃣ Create Transaction Record
-                // ========================================
+// ========================================
+// 8️⃣ Create Transaction Record with Escrow Status
+// ========================================
                 Transaction transaction = new Transaction();
                 transaction.setSenderWalletId(senderWalletId);
                 transaction.setReceiverWalletId(receiverWalletId);
                 transaction.setAmount(amount);
-                transaction.setStatus(TransactionStatus.PENDING);
-                transaction.setInitiatedAt(Instant.now());
-                transaction = transactionRepository.saveAndFlush(transaction);
+
+// Set status based on escrow
+                if (requiresEscrow) {
+                    transaction.setStatus(TransactionStatus.PENDING);
+                    logger.info("⏳ Transaction set to PENDING (escrow)");
+
+                    // Save transaction first, then create escrow hold
+                    transaction = transactionRepository.saveAndFlush(transaction);
+                    escrowService.createEscrowHold(transaction.getId(), amount);
+
+                } else {
+                    transaction.setStatus(TransactionStatus.SUCCESS);
+                    logger.info("✅ Transaction set to SUCCESS (instant)");
+                    transaction = transactionRepository.saveAndFlush(transaction);
+                }
 
                 logger.info("📝 Transaction record created - ID: {}", transaction.getId());
 
-                // ========================================
-                // 9️⃣ Create Ledger Entries (Double-Entry Bookkeeping)
-                // ========================================
-                createLedgerEntry(transaction.getId(), senderWalletId, totalDebit, EntryType.DEBIT);
-                createLedgerEntry(transaction.getId(), receiverWalletId, amount, EntryType.CREDIT);
+// ========================================
+// 9️⃣ Create Ledger Entries (Double-Entry Bookkeeping)
+// ========================================
+                if (requiresEscrow) {
+                    // For escrow: Only record fee entries now, principal entries will be created when escrow completes
+                    createLedgerEntry(transaction.getId(), senderWalletId, fee, EntryType.DEBIT);
 
-                if (fee.compareTo(BigDecimal.ZERO) > 0) {
-                    createLedgerEntry(transaction.getId(), platformWalletId, fee, EntryType.FEE_REVENUE);
-                    logger.debug("💳 Fee ledger entry created - Amount: {}", fee);
+                    if (fee.compareTo(BigDecimal.ZERO) > 0) {
+                        createLedgerEntry(transaction.getId(), platformWalletId, fee, EntryType.FEE_REVENUE);
+                        logger.debug("💳 Fee ledger entry created - Amount: {}", fee);
+                    }
+
+                    // Note: Principal amount ledger entries will be created in EscrowService.completeEscrowTransaction
+                    logger.info("📘 Escrow ledger entries created - Fee recorded, principal pending");
+
+                } else {
+                    // For instant transfers: Record all entries immediately
+                    createLedgerEntry(transaction.getId(), senderWalletId, totalDebit, EntryType.DEBIT);
+                    createLedgerEntry(transaction.getId(), receiverWalletId, amount, EntryType.CREDIT);
+
+                    if (fee.compareTo(BigDecimal.ZERO) > 0) {
+                        createLedgerEntry(transaction.getId(), platformWalletId, fee, EntryType.FEE_REVENUE);
+                        logger.debug("💳 Fee ledger entry created - Amount: {}", fee);
+                    }
+
+                    logger.info("📘 Instant transfer ledger entries created");
                 }
 
                 entityManager.flush();

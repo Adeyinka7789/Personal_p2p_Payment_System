@@ -1,6 +1,7 @@
 package com.example.ppps.repository;
 
 import com.example.ppps.entity.Transaction;
+import com.example.ppps.enums.TransactionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -41,4 +43,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
      */
     @Query("SELECT t FROM Transaction t WHERE t.senderWalletId = :walletId OR t.receiverWalletId = :walletId ORDER BY t.initiatedAt DESC")
     Page<Transaction> findByWalletId(@Param("walletId") UUID walletId, Pageable pageable);
+
+    /**
+     * Find pending transactions initiated before a certain time
+     */
+    List<Transaction> findByStatusAndInitiatedAtBefore(
+            @Param("status") TransactionStatus status,
+            @Param("initiatedAt") Instant initiatedAt
+    );
 }

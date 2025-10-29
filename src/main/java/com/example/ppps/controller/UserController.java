@@ -1,12 +1,11 @@
 package com.example.ppps.controller;
 
 import com.example.ppps.entity.User;
+import com.example.ppps.service.*;
 import com.example.ppps.entity.Wallet;
+import com.example.ppps.dto.PinResetRequest;
 import com.example.ppps.repository.UserRepository;
 import com.example.ppps.repository.WalletRepository;
-import com.example.ppps.service.AuthenticationService;
-import com.example.ppps.service.BalanceService;
-import com.example.ppps.service.TransactionHistoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +44,12 @@ public class UserController {
 
     @Autowired
     private AuthenticationService authenticationService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private EscrowService escrowService;
 
     /**
      * Register a new user
@@ -274,5 +279,100 @@ public class UserController {
         error.put("status", "error");
         error.put("message", message);
         return error;
+    }
+
+    /**
+     * Reset user PIN
+     */
+    @PatchMapping("/reset-pin")
+    public ResponseEntity<?> resetPin(@RequestBody PinResetRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            logger.warn("No authentication context for /reset-pin");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(createErrorResponse("No authentication context"));
+        }
+
+        String userId = auth.getName();
+        logger.info("PIN reset attempt for user: {}", userId);
+
+        try {
+            // Validate PINs match
+            if (!request.getNewPin().equals(request.getConfirmPin())) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("New PIN and confirm PIN do not match"));
+            }
+
+            // Validate new PIN is different from current PIN
+            if (request.getCurrentPin().equals(request.getNewPin())) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("New PIN must be different from current PIN"));
+            }
+
+            // Reset PIN
+            userService.resetPin(userId, request.getCurrentPin(), request.getNewPin());
+
+            Map<String, Object> successResponse = new HashMap<>();
+            successResponse.put("status", "success");
+            successResponse.put("message", "PIN reset successfully");
+
+            logger.info("PIN reset successful for user: {}", userId);
+            return ResponseEntity.ok(successResponse);
+
+        } catch (RuntimeException e) {
+            logger.warn("PIN reset failed for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("PIN reset error for user: {}", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("PIN reset failed due to server error"));
+        }
+    }
+
+    /**
+     * Cancel a pending escrow transfer
+     */
+    @PostMapping("/transfers/{transactionId}/cancel")
+    public ResponseEntity<?> cancelTransfer(@PathVariable UUID transactionId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(createErrorResponse("No authentication context"));
+        }
+
+        String userId = auth.getName();
+        logger.info("Cancel transfer attempt - Transaction: {}, User: {}", transactionId, userId);
+
+        try {
+            // Get user's wallet ID
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            if (user.getWallet() == null) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("User wallet not found"));
+            }
+
+            UUID senderWalletId = user.getWallet().getId();
+
+            // Cancel the escrow transaction
+            escrowService.cancelEscrowTransaction(transactionId, senderWalletId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Transfer cancelled successfully");
+
+            logger.info("Transfer cancelled - Transaction: {}", transactionId);
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            logger.warn("Transfer cancellation failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Transfer cancellation error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Cancellation failed due to server error"));
+        }
     }
 }

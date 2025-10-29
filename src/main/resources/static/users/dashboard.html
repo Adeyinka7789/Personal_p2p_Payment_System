@@ -92,6 +92,7 @@
                     <a href="#" class="nav-link" onclick="showSection('fund', event)">Fund Wallet</a>
                     <a href="#" class="nav-link" onclick="showSection('withdraw', event)">Withdraw</a>
                     <a href="#" class="nav-link" onclick="showSection('send', event)">Send Money</a>
+                    <a href="#" class="nav-link" onclick="showSection('settings', event)">Settings</a>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -113,6 +114,7 @@
                 <option value="fund">Fund Wallet</option>
                 <option value="withdraw">Withdraw</option>
                 <option value="send">Send Money</option>
+                <option value="settings">Settings</option>
             </select>
         </div>
     </nav>
@@ -258,6 +260,64 @@
                         Send Payment
                     </button>
                 </form>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" class="content-section hidden">
+            <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-lg mx-auto">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Account Settings</h2>
+
+                <!-- PIN Reset Form -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Reset PIN</h3>
+                    <form id="reset-pin-form" class="space-y-4">
+                        <div>
+                            <label for="current-pin" class="block text-sm font-medium text-gray-700">Current PIN</label>
+                            <input type="password" id="current-pin" name="currentPin" required minlength="4" maxlength="6" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3" placeholder="Enter current PIN" aria-describedby="current-pin-error">
+                            <p id="current-pin-error" class="text-xs text-red-500 mt-1 hidden"></p>
+                        </div>
+
+                        <div>
+                            <label for="new-pin" class="block text-sm font-medium text-gray-700">New PIN</label>
+                            <input type="password" id="new-pin" name="newPin" required minlength="4" maxlength="6" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3" placeholder="Enter new PIN" aria-describedby="new-pin-error">
+                            <p id="new-pin-error" class="text-xs text-red-500 mt-1 hidden"></p>
+                        </div>
+
+                        <div>
+                            <label for="confirm-pin" class="block text-sm font-medium text-gray-700">Confirm New PIN</label>
+                            <input type="password" id="confirm-pin" name="confirmPin" required minlength="4" maxlength="6" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3" placeholder="Confirm new PIN" aria-describedby="confirm-pin-error">
+                            <p id="confirm-pin-error" class="text-xs text-red-500 mt-1 hidden"></p>
+                        </div>
+
+                        <button type="submit" id="reset-pin-button" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150">
+                            Reset PIN
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Account Information -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Account Information</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Phone Number:</span>
+                            <span id="settings-phone" class="font-medium text-gray-800">Loading...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Email:</span>
+                            <span id="settings-email" class="font-medium text-gray-800">Loading...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">User ID:</span>
+                            <span id="settings-user-id" class="font-medium text-gray-800 text-xs break-all">Loading...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Wallet ID:</span>
+                            <span id="settings-wallet-id" class="font-medium text-gray-800 text-xs break-all">Loading...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -760,11 +820,145 @@
         });
     }
 
-    function resetFormButton(formType) {
-        const btn = document.getElementById(`${formType}-button`);
-        btn.disabled = false;
-        btn.innerHTML = formType === 'fund' ? 'Fund Wallet' : (formType === 'withdraw' ? 'Initiate Withdrawal' : 'Send Payment');
+    // --- PIN Reset Handler ---
+document.getElementById('reset-pin-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearFormErrors('reset-pin');
+
+    const btn = document.getElementById('reset-pin-button');
+    const currentPin = e.target.currentPin.value.trim();
+    const newPin = e.target.newPin.value.trim();
+    const confirmPin = e.target.confirmPin.value.trim();
+
+    // Validation
+    if (!/^\d{4,6}$/.test(currentPin)) {
+        setFormError('current-pin', 'Current PIN must be 4-6 digits.');
+        return;
     }
+
+    if (!/^\d{4,6}$/.test(newPin)) {
+        setFormError('new-pin', 'New PIN must be 4-6 digits.');
+        return;
+    }
+
+    if (!/^\d{4,6}$/.test(confirmPin)) {
+        setFormError('confirm-pin', 'Confirm PIN must be 4-6 digits.');
+        return;
+    }
+
+    if (newPin !== confirmPin) {
+        setFormError('confirm-pin', 'New PIN and confirm PIN do not match.');
+        return;
+    }
+
+    if (currentPin === newPin) {
+        setFormError('new-pin', 'New PIN must be different from current PIN.');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Resetting PIN...';
+
+    try {
+        const response = await fetch(`${API_BASE}/reset-pin`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({
+                currentPin: currentPin,
+                newPin: newPin,
+                confirmPin: confirmPin
+            })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'PIN reset failed');
+
+        showToast('PIN reset successfully! Please use your new PIN for future logins.', 'success');
+        e.target.reset();
+
+    } catch (error) {
+        showToast(error.message || 'PIN reset failed', 'error');
+    } finally {
+        resetPinButton();
+    }
+});
+
+function resetPinButton() {
+    const btn = document.getElementById('reset-pin-button');
+    btn.disabled = false;
+    btn.textContent = 'Reset PIN';
+}
+
+// Update clearFormErrors to handle reset-pin form
+function clearFormErrors(formType) {
+    document.querySelectorAll(`#${formType}-form .text-red-500`).forEach(el => {
+        el.textContent = '';
+        el.classList.add('hidden');
+    });
+}
+
+// Update setFormError to handle reset-pin fields
+function setFormError(fieldId, message) {
+    const errorElement = document.getElementById(`${fieldId}-error`);
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.classList.remove('hidden');
+    }
+}
+
+// Update showSection to handle settings
+function showSection(id, event) {
+    if (event) event.preventDefault();
+    document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+
+    const activeLink = document.querySelector(`.nav-link[onclick*='${id}']`);
+    if (activeLink) activeLink.classList.add('active');
+
+    const mobileSelect = document.querySelector('.sm:hidden select');
+    if (mobileSelect) mobileSelect.value = id;
+
+    // Load settings data when settings section is shown
+    if (id === 'settings') {
+        loadSettingsData();
+    }
+}
+
+// Load settings data
+async function loadSettingsData() {
+    try {
+        const response = await fetch(`${API_BASE}/user/me`, {
+            headers: getAuthHeaders(),
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.status === 'success' && data.user) {
+                document.getElementById('settings-phone').textContent = data.user.phoneNumber || 'N/A';
+                document.getElementById('settings-email').textContent = data.user.email || 'Not provided';
+                document.getElementById('settings-user-id').textContent = data.user.id || 'N/A';
+                document.getElementById('settings-wallet-id').textContent = data.user.walletId || 'N/A';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading settings data:', error);
+        document.getElementById('settings-phone').textContent = 'Error loading';
+        document.getElementById('settings-email').textContent = 'Error loading';
+        document.getElementById('settings-user-id').textContent = 'Error loading';
+        document.getElementById('settings-wallet-id').textContent = 'Error loading';
+    }
+}
+
+    function resetFormButton(formType) {
+    const btn = document.getElementById(`${formType}-button`);
+    btn.disabled = false;
+    btn.innerHTML = formType === 'fund' ? 'Fund Wallet' :
+                   (formType === 'withdraw' ? 'Initiate Withdrawal' :
+                   (formType === 'send' ? 'Send Payment' : 'Reset PIN'));
+}
 
     function toggleTheme() {
         const html = document.getElementById('theme-root');
