@@ -66,6 +66,9 @@ public class SecurityConfig {
                         // NOTE: If you plan to protect the admin panel with a server-side session, this needs adjustment.
                         .requestMatchers("/admin/dashboard").permitAll()
 
+                        // In SecurityConfig.java, add to authorizeHttpRequests:
+                        .requestMatchers("/api/v1/webhooks/**").permitAll()
+
                         // Secured API Endpoints - Require JWT
                         .requestMatchers(
                                 "/api/v1/funding",
