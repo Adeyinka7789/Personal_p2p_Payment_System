@@ -3,88 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PPPS Wallet | Secure P2P Payments</title>
+    <title>YinksPay Wallet | Secure P2P Payments</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
         body {
             font-family: 'Inter', sans-serif;
         }
 
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .dark-gradient-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
         }
 
-        .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .card-glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
-        .card-hover {
-            transition: all 0.3s ease;
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .card-hover:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
 
-        .floating-animation {
-            animation: float 3s ease-in-out infinite;
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out;
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .fade-in {
-            animation: fadeIn 0.8s ease-in;
+        .pulse-glow {
+            animation: pulseGlow 2s ease-in-out infinite alternate;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes pulseGlow {
+            from {
+                box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+            }
+            to {
+                box-shadow: 0 0 30px rgba(96, 165, 250, 0.5);
+            }
         }
 
-        .pulse-slow {
-            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        .gradient-border {
+            position: relative;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            padding: 1px;
+            border-radius: 12px;
+        }
+
+        .gradient-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+            padding: 1px;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-slate-900 text-slate-100">
 
 <!-- Header/Navigation -->
-<header class="absolute w-full z-10">
-    <nav class="max-w-7xl mx-auto px-6 lg:px-8 py-6">
+<header class="fixed w-full z-50 backdrop-blur-lg bg-slate-900/80 border-b border-slate-700/50">
+    <nav class="max-w-7xl mx-auto px-6 lg:px-8 py-4">
         <div class="flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <!-- Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                 </div>
-                <span class="text-2xl font-bold text-gray-800">PPPS Wallet</span>
+                <span class="text-2xl font-bold text-white">YinksPay Wallet</span>
             </div>
 
-            <!-- Navigation Links Container -->
-            <div class="flex items-center space-x-4">
-                <!-- Dashboard Link - Hidden by default (shown only if 'authenticated') -->
-                <a id="dashboard-link" href="dashboard.html" class="hidden text-sm text-gray-600 hover:text-purple-600 font-medium transition px-3 py-1 rounded-lg hover:bg-gray-100">
+            <!-- Navigation Links -->
+            <div class="flex items-center space-x-6">
+                <!-- Dashboard Link -->
+                <a id="dashboard-link" href="/dashboard" class="hidden text-slate-300 hover:text-white font-medium transition-colors duration-200 px-4 py-2 rounded-lg hover:bg-slate-800/50">
                     Dashboard
                 </a>
 
-                <!-- Sign In Link / Go to Dashboard Button - Defaulted to Sign In /login -->
-                <a id="sign-in-link" href="/login" class="text-sm bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition">
+                <!-- Main CTA Button -->
+                <a id="sign-in-link" href="/login" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
                     Sign In
-                </a>
-
-                <!-- A placeholder for a potential Admin Access link, hidden by default -->
-                <a id="admin-link" href="/admin/login" class="hidden text-sm text-gray-600 hover:text-gray-800 font-medium transition">
-                    Admin Access
                 </a>
             </div>
         </div>
@@ -92,93 +120,123 @@
 </header>
 
 <!-- Hero Section -->
-<section class="gradient-bg min-h-screen flex items-center relative overflow-hidden">
-    <!-- Decorative Elements -->
-    <div class="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-    <div class="absolute bottom-20 right-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style="animation-delay: 1s;"></div>
+<section class="dark-gradient-bg min-h-screen flex items-center relative overflow-hidden pt-20">
+    <!-- Animated Background Elements -->
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+    <div class="absolute top-1/2 left-1/2 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style="animation-delay: 4s;"></div>
 
     <div class="max-w-7xl mx-auto px-6 lg:px-8 py-20 relative z-10">
-        <div class="grid md:grid-cols-2 gap-12 items-center">
+        <div class="grid lg:grid-cols-2 gap-16 items-center">
             <!-- Left Content -->
-            <div class="text-white fade-in">
-                <h1 class="text-5xl md:text-6xl font-extrabold leading-tight mb-6">
-                    Send Money
-                    <br/>
-                    <span class="text-blue-200">Instantly & Securely</span>
+            <div class="fade-in-up">
+                <div class="inline-flex items-center space-x-2 bg-slate-800/50 rounded-full px-4 py-2 mb-8 border border-slate-700/50">
+                    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-slate-300">Trusted by 50,000+ users</span>
+                </div>
+
+                <h1 class="text-5xl lg:text-6xl font-bold leading-tight mb-6">
+                    Modern
+                    <span class="text-gradient">Digital Payments</span>
+                    Made Simple
                 </h1>
-                <p class="text-xl text-blue-100 mb-8 leading-relaxed">
-                    Experience seamless peer-to-peer payments with zero hassle. Fast, secure, and designed for the modern digital economy.
+
+                <p class="text-xl text-slate-300 mb-10 leading-relaxed max-w-2xl">
+                    Experience enterprise-grade security with consumer-friendly simplicity.
+                    Send, receive, and manage your money with confidence.
                 </p>
 
                 <!-- CTA Buttons -->
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <a href="/login" class="bg-white text-purple-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-xl hover:shadow-2xl transform hover:scale-105 text-center">
+                <div class="flex flex-col sm:flex-row gap-4 mb-12">
+                    <a href="/login" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105 text-center pulse-glow">
                         Get Started
                     </a>
-                    <a href="/register" class="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-purple-600 transition text-center">
+                    <a href="/register" class="border-2 border-slate-600 text-slate-300 px-8 py-4 rounded-xl font-semibold text-lg hover:border-slate-500 hover:text-white transition-all duration-200 text-center">
                         Create Account
                     </a>
                 </div>
 
-                <!-- Stats -->
-                <div class="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-blue-300/30">
+                <!-- Trust Indicators -->
+                <div class="grid grid-cols-3 gap-8 pt-8 border-t border-slate-700/50">
                     <div>
-                        <div class="text-3xl font-bold">99.9%</div>
-                        <div class="text-sm text-blue-200">Uptime</div>
+                        <div class="text-2xl font-bold text-white">99.9%</div>
+                        <div class="text-sm text-slate-400">Uptime</div>
                     </div>
                     <div>
-                        <div class="text-3xl font-bold">&lt;2s</div>
-                        <div class="text-sm text-blue-200">Avg Transfer</div>
+                        <div class="text-2xl font-bold text-white">&lt;2s</div>
+                        <div class="text-sm text-slate-400">Transfers</div>
                     </div>
                     <div>
-                        <div class="text-3xl font-bold">24/7</div>
-                        <div class="text-sm text-blue-200">Support</div>
+                        <div class="text-2xl font-bold text-white">256-bit</div>
+                        <div class="text-sm text-slate-400">Encryption</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Content - Floating Card -->
-            <div class="hidden md:block floating-animation">
-                <div class="bg-white rounded-3xl shadow-2xl p-8 transform rotate-3">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full"></div>
-                            <div>
-                                <div class="text-sm text-gray-500">Available Balance</div>
-                                <div class="text-3xl font-bold text-gray-800">₦125,430</div>
+            <!-- Right Content - Preview Card -->
+            <div class="hidden lg:block fade-in-up" style="animation-delay: 0.3s;">
+                <div class="gradient-border hover-lift">
+                    <div class="card-glass rounded-xl p-8 backdrop-blur-sm">
+                        <div class="flex items-center justify-between mb-8">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg"></div>
+                                <div>
+                                    <div class="text-sm text-slate-400">Available Balance</div>
+                                    <div class="text-3xl font-bold text-white">₦125,430.75</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="space-y-3 mt-8">
-                        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
+                        <!-- Recent Activity -->
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-white">Transfer to John</div>
+                                        <div class="text-sm text-slate-400">2 minutes ago</div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div class="font-semibold text-gray-800">Transfer Sent</div>
-                                    <div class="text-sm text-gray-500">2 mins ago</div>
-                                </div>
+                                <div class="text-red-400 font-bold">-₦5,000</div>
                             </div>
-                            <div class="text-red-600 font-bold">-₦5,000</div>
+
+                            <div class="flex justify-between items-center p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-white">Wallet Funding</div>
+                                        <div class="text-sm text-slate-400">1 hour ago</div>
+                                    </div>
+                                </div>
+                                <div class="text-green-400 font-bold">+₦15,000</div>
+                            </div>
                         </div>
 
-                        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-gray-800">Wallet Funded</div>
-                                    <div class="text-sm text-gray-500">1 hour ago</div>
-                                </div>
-                            </div>
-                            <div class="text-green-600 font-bold">+₦15,000</div>
+                        <!-- Quick Actions -->
+                        <div class="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-slate-700/30">
+                            <button class="p-3 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-slate-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </button>
+                            <button class="p-3 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-slate-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                </svg>
+                            </button>
+                            <button class="p-3 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-slate-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -188,79 +246,104 @@
 </section>
 
 <!-- Features Section -->
-<section class="py-20 bg-white">
+<section class="py-20 bg-slate-800/30">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
-        <div class="text-center mb-16">
-            <h2 class="text-4xl font-extrabold text-gray-900 mb-4">
-                Why Choose <span class="gradient-text">PPPS Wallet?</span>
+        <div class="text-center mb-16 fade-in-up">
+            <h2 class="text-4xl font-bold text-white mb-4">
+                Enterprise Features,
+                <span class="text-gradient">Consumer Simplicity</span>
             </h2>
-            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-                Built with cutting-edge technology to provide you the best payment experience
+            <p class="text-xl text-slate-300 max-w-3xl mx-auto">
+                Built with the latest security standards and designed for effortless user experience
             </p>
         </div>
 
         <div class="grid md:grid-cols-3 gap-8">
             <!-- Feature 1 -->
-            <div class="card-hover bg-white border-2 border-gray-100 p-8 rounded-2xl">
-                <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
-                    <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="card-glass p-8 rounded-xl hover-lift fade-in-up">
+                <div class="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6 border border-blue-500/30">
+                    <svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 mb-3">Lightning Fast</h3>
-                <p class="text-gray-600 leading-relaxed">
-                    Transactions complete in under 2 seconds. No more waiting for your money to arrive.
+                <h3 class="text-2xl font-semibold text-white mb-3">Instant Transfers</h3>
+                <p class="text-slate-300 leading-relaxed">
+                    Real-time payment processing with sub-2-second transaction completion. No delays, just speed.
                 </p>
             </div>
 
             <!-- Feature 2 -->
-            <div class="card-hover bg-white border-2 border-gray-100 p-8 rounded-2xl">
-                <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-6">
-                    <svg class="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="card-glass p-8 rounded-xl hover-lift fade-in-up" style="animation-delay: 0.1s;">
+                <div class="w-14 h-14 bg-purple-500/20 rounded-xl flex items-center justify-center mb-6 border border-purple-500/30">
+                    <svg class="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                     </svg>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 mb-3">Bank-Level Security</h3>
-                <p class="text-gray-600 leading-relaxed">
-                    Your funds are protected with military-grade encryption and multi-factor authentication.
+                <h3 class="text-2xl font-semibold text-white mb-3">Military-Grade Security</h3>
+                <p class="text-slate-300 leading-relaxed">
+                    256-bit encryption, multi-factor authentication, and continuous threat monitoring protect your assets.
                 </p>
             </div>
 
             <!-- Feature 3 -->
-            <div class="card-hover bg-white border-2 border-gray-100 p-8 rounded-2xl">
-                <div class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-6">
-                    <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            <div class="card-glass p-8 rounded-xl hover-lift fade-in-up" style="animation-delay: 0.2s;">
+                <div class="w-14 h-14 bg-green-500/20 rounded-xl flex items-center justify-center mb-6 border border-green-500/30">
+                    <svg class="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                     </svg>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 mb-3">Low Fees</h3>
-                <p class="text-gray-600 leading-relaxed">
-                    Transparent pricing with minimal transaction fees. Keep more of your money.
+                <h3 class="text-2xl font-semibold text-white mb-3">Regulatory Compliance</h3>
+                <p class="text-slate-300 leading-relaxed">
+                    Fully compliant with financial regulations. Your money is safe, secure, and properly managed.
                 </p>
             </div>
         </div>
     </div>
 </section>
 
+<!-- Stats Section -->
+<section class="py-20 bg-slate-900">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="grid md:grid-cols-4 gap-8 text-center">
+            <div class="fade-in-up">
+                <div class="text-3xl font-bold text-white mb-2">50K+</div>
+                <div class="text-slate-400">Active Users</div>
+            </div>
+            <div class="fade-in-up" style="animation-delay: 0.1s;">
+                <div class="text-3xl font-bold text-white mb-2">₦10B+</div>
+                <div class="text-slate-400">Processed</div>
+            </div>
+            <div class="fade-in-up" style="animation-delay: 0.2s;">
+                <div class="text-3xl font-bold text-white mb-2">24/7</div>
+                <div class="text-slate-400">Support</div>
+            </div>
+            <div class="fade-in-up" style="animation-delay: 0.3s;">
+                <div class="text-3xl font-bold text-white mb-2">99.9%</div>
+                <div class="text-slate-400">Reliability</div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- CTA Section -->
-<section class="py-20 gradient-bg relative overflow-hidden">
-    <div class="absolute inset-0 opacity-10">
-        <div class="absolute top-10 left-10 w-64 h-64 bg-white rounded-full"></div>
-        <div class="absolute bottom-10 right-10 w-96 h-96 bg-white rounded-full"></div>
+<section class="py-20 dark-gradient-bg relative overflow-hidden">
+    <div class="absolute inset-0">
+        <div class="absolute top-0 left-0 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
     </div>
 
-    <div class="max-w-4xl mx-auto px-6 lg:px-8 text-center relative z-10">
-        <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-6">
-            Ready to Get Started?
+    <div class="max-w-4xl mx-auto px-6 lg:px-8 text-center relative z-10 fade-in-up">
+        <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
+            Ready to Transform Your Payments?
         </h2>
-        <p class="text-xl text-blue-100 mb-10">
-            Join thousands of users already enjoying seamless P2P payments
+        <p class="text-xl text-slate-300 mb-10 max-w-2xl mx-auto">
+            Join the future of digital finance with a platform built for security, speed, and simplicity.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/register" class="bg-white text-purple-600 px-10 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-xl hover:shadow-2xl transform hover:scale-105">
-                Create Free Account
+            <a href="/register" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-10 py-4 rounded-xl font-semibold text-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105">
+                Create Account
             </a>
-            <a href="/login" class="bg-transparent border-2 border-white text-white px-10 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-purple-600 transition">
+            <a href="/login" class="border-2 border-slate-600 text-slate-300 px-10 py-4 rounded-xl font-semibold text-lg hover:border-slate-500 hover:text-white transition-all duration-200">
                 Sign In
             </a>
         </div>
@@ -268,96 +351,99 @@
 </section>
 
 <!-- Footer -->
-<footer class="bg-gray-900 text-gray-400 py-12">
+<footer class="bg-slate-900 border-t border-slate-800 py-12">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="grid md:grid-cols-4 gap-8 mb-8">
             <div>
                 <div class="flex items-center space-x-2 mb-4">
                     <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg"></div>
-                    <span class="text-xl font-bold text-white">PPPS</span>
+                    <span class="text-xl font-bold text-white">PPPS Wallet</span>
                 </div>
-                <p class="text-sm">Secure peer-to-peer payment platform for the digital age.</p>
+                <p class="text-slate-400 text-sm">Secure, fast, and reliable peer-to-peer payment solutions.</p>
             </div>
             <div>
-                <h4 class="text-white font-semibold mb-3">Product</h4>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="hover:text-white transition">Features</a></li>
-                    <li><a href="#" class="hover:text-white transition">Pricing</a></li>
-                    <li><a href="#" class="hover:text-white transition">Security</a></li>
+                <h4 class="text-white font-semibold mb-4">Product</h4>
+                <ul class="space-y-2 text-sm text-slate-400">
+                    <li><a href="#" class="hover:text-white transition-colors">Features</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Security</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Pricing</a></li>
                 </ul>
             </div>
             <div>
-                <h4 class="text-white font-semibold mb-3">Company</h4>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="hover:text-white transition">About</a></li>
-                    <li><a href="#" class="hover:text-white transition">Contact</a></li>
-                    <li><a href="#" class="hover:text-white transition">Careers</a></li>
+                <h4 class="text-white font-semibold mb-4">Company</h4>
+                <ul class="space-y-2 text-sm text-slate-400">
+                    <li><a href="#" class="hover:text-white transition-colors">About</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Contact</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Careers</a></li>
                 </ul>
             </div>
             <div>
-                <h4 class="text-white font-semibold mb-3">Legal</h4>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="hover:text-white transition">Privacy</a></li>
-                    <li><a href="#" class="hover:text-white transition">Terms</a></li>
-                    <li><a href="#" class="hover:text-white transition">Security</a></li>
+                <h4 class="text-white font-semibold mb-4">Legal</h4>
+                <ul class="space-y-2 text-sm text-slate-400">
+                    <li><a href="#" class="hover:text-white transition-colors">Privacy</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Terms</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Compliance</a></li>
                 </ul>
             </div>
         </div>
-        <div class="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>&copy; 2024 PPPS Wallet. All rights reserved. Built with ❤️ for seamless payments.</p>
+        <div class="border-t border-slate-800 pt-8 text-center text-sm text-slate-400">
+            <p>&copy; 2024 PPPS Wallet. All rights reserved. Built for the future of finance.</p>
         </div>
     </div>
 </footer>
 
 <script>
-    /**
-     * This function checks the authentication status and updates the navigation links accordingly.
-     * If unauthenticated, the main right button is "Sign In" and links to /login.
-     * If authenticated, the main right button is "Go to Dashboard" and links to dashboard.html,
-     * and the subtle "Dashboard" link is made visible.
-     * * To test: Open your browser console and run:
-     * - localStorage.setItem('__is_authenticated', 'true'); checkAuthLinks(); // To show Dashboard
-     * - localStorage.removeItem('__is_authenticated'); checkAuthLinks(); // To show Sign In
-     */
+    // Enhanced authentication check with better UX
     function checkAuthLinks() {
         const dashboardLink = document.getElementById('dashboard-link');
         const signInLink = document.getElementById('sign-in-link');
-        const adminLink = document.getElementById('admin-link');
 
-        // Check the mock authentication flag
-        const isAuthenticated = localStorage.getItem('__is_authenticated') === 'true';
+        // Check for actual auth token instead of mock flag
+        const hasAuthToken = localStorage.getItem('authToken') ||
+                            Array.from({length: localStorage.length}, (_, i) => localStorage.key(i))
+                                .some(key => key.startsWith('authToken_'));
 
-        if (isAuthenticated) {
+        if (hasAuthToken) {
             // AUTHENTICATED STATE
-            // 1. Show the secondary Dashboard link
             dashboardLink.classList.remove('hidden');
-
-            // 2. Change the primary button to 'Go to Dashboard'
-            signInLink.href = 'dashboard.html';
-            signInLink.textContent = 'Go to Dashboard';
-            // Ensure classes are correct (no need to change, but good to ensure consistency)
-            signInLink.className = 'text-sm bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition';
-
-            // 3. Admin link remains hidden
-            adminLink.classList.add('hidden');
-
+            signInLink.href = '/dashboard';
+            signInLink.textContent = 'Dashboard';
+            signInLink.className = 'bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105';
         } else {
             // UNAUTHENTICATED STATE
-            // 1. Hide the secondary Dashboard link
             dashboardLink.classList.add('hidden');
-
-            // 2. Change the primary button to 'Sign In' and ensure it points to /login
             signInLink.href = '/login';
             signInLink.textContent = 'Sign In';
-            signInLink.className = 'text-sm bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition';
-
-            // 3. Admin link remains hidden
-            adminLink.classList.add('hidden');
+            signInLink.className = 'bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105';
         }
     }
 
-    // Run the check when the page loads
-    document.addEventListener('DOMContentLoaded', checkAuthLinks);
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuthLinks();
+
+        // Add intersection observer for fade-in animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationPlayState = 'running';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all fade-in elements
+        document.querySelectorAll('.fade-in-up').forEach(el => {
+            observer.observe(el);
+        });
+    });
+
+    // Re-check auth status when storage changes (for multi-tab support)
+    window.addEventListener('storage', checkAuthLinks);
 </script>
 </body>
 </html>
