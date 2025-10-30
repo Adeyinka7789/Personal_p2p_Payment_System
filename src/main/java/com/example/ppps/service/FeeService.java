@@ -3,7 +3,6 @@ package com.example.ppps.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -20,9 +19,8 @@ public class FeeService {
     @Value("${app.fee.scale:2}")
     int scale;
 
-    /**
-     * Calculate total transaction fee based on fixed and percentage rates.
-     */
+    // calculate total transaction fee based on fixed and percentage rates.
+
     public BigDecimal calculateFee(BigDecimal amount) {
         if (amount == null) {
             log.warn("🟡 FeeService: Null amount provided. Returning zero fee.");
@@ -39,9 +37,7 @@ public class FeeService {
         return totalFee;
     }
 
-    /**
-     * Debug helper for testing / config verification
-     */
+    // debug helper for testing and config verification
     public String getFeeConfiguration() {
         return String.format("Fixed Fee: %s | Percentage: %s | Scale: %d",
                 fixedFee, percentage, scale);

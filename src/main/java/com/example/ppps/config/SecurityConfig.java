@@ -1,7 +1,5 @@
 package com.example.ppps.config;
 
-import com.example.ppps.config.JwtAuthenticationFilter;
-import com.example.ppps.config.RateLimitingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -17,14 +15,13 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import java.util.Arrays;
-import java.util.List;
+
 
 @Configuration
 @EnableWebSecurity
 @EnableCaching
-@EnableMethodSecurity(prePostEnabled = true) // ✅ ADD THIS LINE - CRITICAL FIX
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Bean
@@ -32,7 +29,7 @@ public class SecurityConfig {
                                                    RateLimitingFilter rateLimitingFilter,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
-                // ENABLE CORS with Spring Security configuration
+                // i have enabled CORS with Spring Security configuration
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/api/**") // Disable CSRF for API endpoints
@@ -40,8 +37,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(requests -> requests
                         // Public Pages & Static Assets
                         .requestMatchers("/", "/login", "/register").permitAll()
-
-                        // Static resources - Allow all (CSS, JS, images, etc.)
+                        // kindly Allow all (CSS, JS, images, etc.)
                         .requestMatchers(
                                 "/users/**",
                                 "/admin/**",  // This covers all admin pages including login.html
@@ -52,28 +48,27 @@ public class SecurityConfig {
                                 "/fonts/**",
                                 "/favicon.ico"
                         ).permitAll()
-
-                        // Public API Endpoints - COMBINED AND CLEANED
+                        // kindly allow all public API endpoints
                         .requestMatchers(
                                 "/api/v1/register",
                                 "/api/v1/auth/login",
-                                "/api/v1/auth/admin/login",  // ADDED HERE
+                                "/api/v1/auth/admin/login",
                                 "/api/v1/webhooks/**"
                         ).permitAll()
-
-                        // Other public endpoints/assets
                         .requestMatchers(
-                                "/error",
                                 "/swagger-ui/**",
+                                "/swagger-ui.html",
                                 "/v3/api-docs/**",
+                                "/v3/api-docs.yaml",
+                                "/swagger-resources/**",
+                                "/webjars/**",
+                                "/error",
                                 "/actuator/**"
                         ).permitAll()
-
-                        // Dashboard pages - permit all (JWT handled client-side)
+                        // kindly permit all dashboard pages-- for the JWT handled client-side
                         .requestMatchers("/dashboard", "/dashboard/**").permitAll()
                         .requestMatchers("/admin/dashboard", "/admin/dashboard/**").permitAll()
-
-                        // Secured API Endpoints - Require JWT
+                        // for secured Endpoints --- requires JWT
                         .requestMatchers(
                                 "/api/v1/funding",
                                 "/api/v1/withdrawals",
@@ -83,24 +78,18 @@ public class SecurityConfig {
                                 "/api/v1/reset-pin/**",
                                 "/api/v1/user-info"
                         ).authenticated()
-
-                        // ✅ FIXED: Use hasRole instead of hasAuthority (automatically adds ROLE_ prefix)
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-
-                        // Any other request must be authenticated
+                        // every other request must be authenticated
                         .anyRequest().authenticated()
                 )
-
-                // Disable form login and use JWT
+                // i have disabled form login, use JWT
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
-
-                // Session management
+                // for my Session management
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)  // Changed to STATELESS for pure JWT
                 )
-
-                // Filter chain: Rate Limiting → JWT Authentication → Spring Security
+                // Filter chain: Rate Limiting --> JWT Authentication --> Spring Security
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -111,7 +100,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow specific origins with patterns
+        // kindly allow some origins with patterns
         configuration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
@@ -119,27 +108,18 @@ public class SecurityConfig {
                 "https://ef957486f0d1.ngrok-free.app"
         ));
 
-        // Allow all HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-
-        // Allow all headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
-
-        // Allow credentials (cookies, authorization headers)
+        // cookies & authorization headers
         configuration.setAllowCredentials(true);
-
         // Cache preflight response for 1 hour
         configuration.setMaxAge(3600L);
-
         // Expose headers to the client
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
-
         return source;
     }
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

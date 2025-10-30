@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GatewayResponse {
-    private String status;            // SUCCESS, FAILED, PENDING
-    private String gatewayReference;  // e.g., mock external reference
+    private String status;
+    private String gatewayReference;
     private String message;
 }
 

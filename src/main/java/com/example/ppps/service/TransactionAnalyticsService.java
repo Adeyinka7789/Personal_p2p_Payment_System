@@ -14,13 +14,11 @@ public class TransactionAnalyticsService {
     @KafkaListener(topics = KafkaTopics.TRANSACTIONS_COMPLETED, groupId = "analytics-service")
     public void handleTransactionEvent(TransactionCompletedEvent event) {
         log.info("📊 Analytics received TransactionCompletedEvent: {}", event);
-
-        // Example: store event in analytics DB
         storeTransactionEvent(event);
     }
 
     private void storeTransactionEvent(TransactionCompletedEvent event) {
-        // Your DB insert logic here
+        // your DB insert logic here if you need this feature
         log.info("Stored transaction {} in analytics DB", event.getTransactionId());
     }
 
@@ -31,7 +29,6 @@ public class TransactionAnalyticsService {
     }
 
     private void storeWithdrawalEvent(WithdrawalCompletedEvent event) {
-        // Example: Insert into analytics DB
         log.info("Stored withdrawal {} for amount {} in analytics DB",
                 event.getTransactionId(), event.getAmount());
     }

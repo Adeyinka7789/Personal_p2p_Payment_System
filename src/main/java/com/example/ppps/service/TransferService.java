@@ -24,7 +24,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
@@ -91,15 +90,11 @@ public class TransferService {
 
             try {
                 logger.info("🚀 Starting P2P transfer - Receiver: {}, Amount: {}", receiverPhoneNumber, amount);
-
-                // ========================================
-                // 1️⃣ Authentication & User Validation
-                // ========================================
+                // Authentication & User Validation
                 var authentication = SecurityContextHolder.getContext().getAuthentication();
                 if (authentication == null) {
                     throw new PppsException(HttpStatus.UNAUTHORIZED, "No authentication context");
                 }
-
                 String userId = authentication.getPrincipal().toString();
                 logger.debug("Authenticated user ID: {}", userId);
 
@@ -109,12 +104,9 @@ public class TransferService {
                 User receiverUser = userRepository.findByPhoneNumber(receiverPhoneNumber)
                         .orElseThrow(() -> new PppsException(HttpStatus.NOT_FOUND,
                                 "Receiver with phone number " + receiverPhoneNumber + " not found"));
-
                 logger.info("✅ Sender: {} | Receiver: {}", senderUser.getPhoneNumber(), receiverUser.getPhoneNumber());
 
-                // ========================================
-                // 2️⃣ Wallet Validation
-                // ========================================
+                // Wallet Validation
                 Wallet senderWallet = senderUser.getWallet();
                 Wallet receiverWallet = receiverUser.getWallet();
 
@@ -128,12 +120,10 @@ public class TransferService {
                 if (senderWalletId.equals(receiverWalletId)) {
                     throw new PppsException(HttpStatus.BAD_REQUEST, "Cannot transfer to yourself");
                 }
-
                 logger.debug("Sender Wallet ID: {} | Receiver Wallet ID: {}", senderWalletId, receiverWalletId);
 
-                // ========================================
-                // 3️⃣ PIN Verification
-                // ========================================
+
+                // PIN Verification
                 if (securePin == null || securePin.trim().isEmpty()) {
                     throw new PppsException(HttpStatus.BAD_REQUEST, "PIN is required");
                 }
@@ -142,12 +132,10 @@ public class TransferService {
                     logger.warn("⚠️ Invalid PIN attempt for user: {}", userId);
                     throw new PppsException(HttpStatus.UNAUTHORIZED, "Invalid PIN");
                 }
-
                 logger.debug("✅ PIN verified successfully");
 
-                // ========================================
-                // 4️⃣ Amount Validation & Fee Calculation
-                // ========================================
+
+                // Amount Validation & Fee Calculation
                 if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
                     throw new PppsException(HttpStatus.BAD_REQUEST, "Amount must be greater than zero");
                 }
@@ -155,12 +143,10 @@ public class TransferService {
                 BigDecimal fee = feeService.calculateFee(amount);
                 if (fee == null) fee = BigDecimal.ZERO;
                 BigDecimal totalDebit = amount.add(fee);
-
                 logger.info("💰 Amount: {} | Fee: {} | Total Debit: {}", amount, fee, totalDebit);
 
-                // ========================================
-                // 5️⃣ Lock Wallets (Pessimistic Locking)
-                // ========================================
+
+                // Lock Wallets (Pessimistic Locking)
                 logger.debug("🔒 Acquiring locks on wallets...");
 
                 Wallet senderWalletLocked = walletRepository.findByIdWithLock(senderWalletId);
@@ -180,12 +166,10 @@ public class TransferService {
                         throw new PppsException(HttpStatus.INTERNAL_SERVER_ERROR, "Platform wallet not found");
                     }
                 }
-
                 logger.debug("✅ Wallets locked successfully");
 
-                // ========================================
-                // 6️⃣ Balance Check
-                // ========================================
+
+                // Balance Check
                 if (senderWalletLocked.getBalance().compareTo(totalDebit) < 0) {
                     logger.warn("⚠️ Insufficient funds - Required: {}, Available: {}",
                             totalDebit, senderWalletLocked.getBalance());
@@ -195,9 +179,7 @@ public class TransferService {
                     );
                 }
 
-// ========================================
-// 7️⃣ Escrow Check & Balance Updates
-// ========================================
+                // Escrow Check & Balance Updates
                 boolean requiresEscrow = escrowService.requiresEscrow(amount);
 
                 BigDecimal senderOldBalance = senderWalletLocked.getBalance();
@@ -213,20 +195,19 @@ public class TransferService {
                     logger.info("💰 Escrow setup - Fee deducted: {}, Principal held: {}", fee, amount);
 
                 } else {
-                    // Instant transfer: Deduct full amount immediately
+                    // it is Instant transfer: Deduct full amount immediately
                     senderWalletLocked.setBalance(senderWalletLocked.getBalance().subtract(totalDebit));
                     receiverWalletLocked.setBalance(receiverWalletLocked.getBalance().add(amount));
-
                     logger.info("⚡ Instant transfer - Total debit: {}, Receiver credit: {}", totalDebit, amount);
                 }
 
-// Platform fee is always deducted immediately (for both escrow and instant)
+                    // Platform fee is always deducted immediately -- for both escrow and instant
                 if (platformWallet != null && fee.compareTo(BigDecimal.ZERO) > 0) {
                     platformWallet.setBalance(platformWallet.getBalance().add(fee));
                     logger.info("🏦 Platform fee collected: {}", fee);
                 }
 
-// Save wallet updates
+                    // Save wallet updates
                 walletRepository.saveAndFlush(senderWalletLocked);
                 if (!requiresEscrow) {
                     // Only update receiver wallet for instant transfers
@@ -240,16 +221,14 @@ public class TransferService {
                         senderOldBalance, senderWalletLocked.getBalance(),
                         receiverOldBalance, requiresEscrow ? receiverOldBalance : receiverWalletLocked.getBalance());
 
-                // ========================================
-                // 8️⃣ Create Transaction Record with Escrow Status
-                // ========================================
+                //Create Transaction Record with Escrow Status
                 Transaction transaction = new Transaction();
                 transaction.setSenderWalletId(senderWalletId);
                 transaction.setReceiverWalletId(receiverWalletId);
                 transaction.setAmount(amount);
                 transaction.setInitiatedAt(Instant.now());
 
-// Set status based on escrow
+                    // Set status based on escrow
                 if (requiresEscrow) {
                     transaction.setStatus(TransactionStatus.PENDING);
                     logger.info("⏳ Transaction set to PENDING (escrow)");
@@ -263,11 +242,9 @@ public class TransferService {
                     logger.info("✅ Transaction set to SUCCESS (instant)");
                     transaction = transactionRepository.saveAndFlush(transaction);
                 }
-
                 logger.info("📝 Transaction record created - ID: {}", transaction.getId());
-// ========================================
-// 9️⃣ Create Ledger Entries (Double-Entry Bookkeeping)
-// ========================================
+
+                //Create Ledger Entries (Double-Entry Bookkeeping)
                 if (requiresEscrow) {
                     // For escrow: Only record fee entries now, principal entries will be created when escrow completes
                     createLedgerEntry(transaction.getId(), senderWalletId, fee, EntryType.DEBIT);
@@ -292,13 +269,11 @@ public class TransferService {
 
                     logger.info("📘 Instant transfer ledger entries created");
                 }
-
                 entityManager.flush();
                 logger.debug("✅ Ledger entries persisted");
 
-                // ========================================
-                // 🔟 Gateway Payment Processing
-                // ========================================
+
+                //Gateway Payment Processing
                 logger.info("🌐 Calling payment gateway...");
 
                 GatewayRequest gatewayRequest = GatewayRequest.builder()
@@ -315,9 +290,8 @@ public class TransferService {
                 GatewayResponse gatewayResponse = gatewayService.processPayment(gatewayRequest);
                 logger.info("✅ Gateway response received - Status: {}", gatewayResponse.getStatus());
 
-                // ========================================
-// 1️⃣1️⃣ Update Transaction Status
-// ========================================
+
+                    //Update Transaction Status
                 if ("SUCCESS".equalsIgnoreCase(gatewayResponse.getStatus())) {
                     // ✅ FIX: Don't override escrow status - keep as PENDING for escrow transactions
                     if (!requiresEscrow) {
@@ -381,11 +355,7 @@ public class TransferService {
         });
     }
 
-    /**
-     * ✅ FIX #3: Robust Kafka publishing with success/failure logging
-     * Publishes TransactionCompletedEvent to Kafka after transaction commit.
-     * Exceptions are caught and logged to prevent breaking the main flow.
-     */
+    // Kafka publishing with success/failure logging
     private void publishTransactionCompletedEvent(
             Transaction transaction,
             UUID senderWalletId,
@@ -439,13 +409,11 @@ public class TransferService {
                             transactionCompletedTopic,
                             ex.getMessage(),
                             ex);
-                    // IMPORTANT: Do NOT throw exception here - transaction already committed
-                    // Consider implementing a dead-letter queue or retry mechanism
                 }
             });
 
         } catch (Exception e) {
-            // ✅ Catch any synchronous exceptions to prevent breaking the flow
+            //Catch any synchronous exceptions to prevent breaking the flow
             logger.error("[{}] ❌ Exception during Kafka publish attempt - Tx ID: {} | Topic: {}",
                     currentCorrelationId,
                     transaction.getId(),
@@ -460,9 +428,7 @@ public class TransferService {
         }
     }
 
-    /**
-     * Creates a ledger entry for double-entry bookkeeping.
-     */
+    // Creates a ledger entry for double-entry bookkeeping.
     private void createLedgerEntry(UUID transactionId, UUID walletId, BigDecimal amount, EntryType type) {
         LedgerEntry entry = new LedgerEntry();
         entry.setTransactionId(transactionId);
@@ -476,9 +442,7 @@ public class TransferService {
                 type, walletId, amount);
     }
 
-    /**
-     * Verifies user's PIN using bcrypt password encoder.
-     */
+    // Verifies user's PIN using bcrypt password encoder.
     private boolean verifyPin(String providedPin, String hashedPin) {
         if (hashedPin == null) {
             throw new PppsException(HttpStatus.BAD_REQUEST, "User PIN not set");

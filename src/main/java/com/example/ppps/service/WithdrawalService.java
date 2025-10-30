@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
@@ -66,24 +65,17 @@ public class WithdrawalService {
                 ? null : UUID.fromString(platformWalletIdStr);
     }
 
-    /**
-     * Performs a withdrawal from the authenticated user's wallet to external bank account.
-     *
-     * @param authenticatedUserId String user id (principal) - must match user.userId
-     * @param request WithdrawRequest DTO
-     */
+    // let's perform a withdrawal from the authenticated user's wallet to external bank account
+
     @Transactional
     public void withdraw(String authenticatedUserId, WithdrawRequest request) {
         try {
-            // 1. Validate authenticated user
             if (authenticatedUserId == null) {
                 throw new PppsException(HttpStatus.UNAUTHORIZED, "No authentication context");
             }
-
             var user = userRepository.findById(authenticatedUserId)
                     .orElseThrow(() -> new PppsException(HttpStatus.NOT_FOUND, "User not found"));
 
-            // 2. Determine wallet to withdraw from: prefer request.walletId if provided but must belong to user
             Wallet userWallet = user.getWallet();
             if (userWallet == null) {
                 throw new PppsException(HttpStatus.BAD_REQUEST, "User has no wallet");
@@ -91,12 +83,10 @@ public class WithdrawalService {
 
             UUID walletIdToUse = request.getWalletId() == null ? userWallet.getId() : request.getWalletId();
 
-            // Ensure user owns this wallet
             if (!walletIdToUse.equals(userWallet.getId())) {
                 throw new PppsException(HttpStatus.FORBIDDEN, "Cannot withdraw from wallet you don't own");
             }
 
-            // 3. Validate PIN
             if (request.getSecurePin() == null || request.getSecurePin().trim().isEmpty()) {
                 throw new PppsException(HttpStatus.BAD_REQUEST, "PIN is required for withdrawal");
             }
@@ -104,22 +94,20 @@ public class WithdrawalService {
                 throw new PppsException(HttpStatus.UNAUTHORIZED, "Invalid PIN");
             }
 
-            // 4. Validate amount
             BigDecimal amount = request.getAmount();
             if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new PppsException(HttpStatus.BAD_REQUEST, "Amount must be greater than zero");
             }
 
-            // 5. Compute fee and total debit
             BigDecimal fee = feeService.calculateFee(amount);
             if (fee == null) fee = BigDecimal.ZERO;
             BigDecimal totalDebit = amount.add(fee);
 
-            // 6. Lock wallet (pessimistic)
+            //lock wallet (pessimistic)
             Wallet walletLocked = walletRepository.findByIdWithLock(walletIdToUse);
             if (walletLocked == null) throw new WalletNotFoundException("Wallet not found (locked)");
 
-            // 7. Platform wallet for fee capture is required (we use it to record fee revenue)
+            // platform wallet for fee capture is required: to record fee revenue
             Wallet platformWallet = null;
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 if (platformWalletId == null) {
@@ -131,13 +119,13 @@ public class WithdrawalService {
                 }
             }
 
-            // 8. Sufficient balance?
+            // sufficient balance?
             if (walletLocked.getBalance().compareTo(totalDebit) < 0) {
                 throw new InsufficientFundsException(String.format("Insufficient balance. Available: %s, Required: %s",
                         walletLocked.getBalance(), totalDebit));
             }
 
-            // 9. Deduct balance now (we'll commit only if the DB transaction succeeds)
+            // Deduct balance now (we'll commit only if the DB transaction succeeds)
             walletLocked.setBalance(walletLocked.getBalance().subtract(totalDebit));
             if (platformWallet != null) {
                 platformWallet.setBalance(platformWallet.getBalance().add(fee));
@@ -145,17 +133,17 @@ public class WithdrawalService {
             walletRepository.saveAndFlush(walletLocked);
             if (platformWallet != null) walletRepository.saveAndFlush(platformWallet);
 
-            // 10. Create transaction record
+            //create transaction record
             Transaction tx = new Transaction();
             tx.setSenderWalletId(walletLocked.getId());
-            // For withdrawals we set receiverWalletId to platformWalletId (represents outflow)
+            // Note❗: for withdrawals we set receiverWalletId to platformWalletId--represents outflow
             tx.setReceiverWalletId(platformWalletId != null ? platformWalletId : walletLocked.getId());
             tx.setAmount(amount);
             tx.setStatus(TransactionStatus.PENDING);
             tx.setInitiatedAt(Instant.now());
             tx = transactionRepository.saveAndFlush(tx);
 
-            // 11. Ledger entries (DEBIT user for totalDebit, FEE_REVENUE if fee > 0)
+            //ledger entries -- DEBIT user for totalDebit, FEE_REVENUE if fee > 0
             LedgerEntry debit = new LedgerEntry();
             debit.setTransactionId(tx.getId());
             debit.setWalletId(walletLocked.getId());
@@ -174,11 +162,10 @@ public class WithdrawalService {
                 ledgerEntryRepository.saveAndFlush(feeEntry);
             }
 
-            // 12. Call external gateway to send funds to bank
+            //Call external gateway to send funds to bank
             String correlationId = UUID.randomUUID().toString();
             MDC.put("correlationId", correlationId);
-
-            // ✅ FIX: Use HashMap<String, Object> to allow null values (narration can be null)
+            // i used HashMap<String, Object> to allow null values
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("bankName", request.getBankName());
             metadata.put("accountNumber", request.getAccountNumber());
@@ -193,14 +180,14 @@ public class WithdrawalService {
 
             GatewayResponse gatewayResponse = gatewayService.processWithdrawal(gatewayRequest);
 
-            // 13. Update tx status based on gateway response
+            // Update tx status based on gateway response
             if ("SUCCESS".equalsIgnoreCase(gatewayResponse.getStatus())) {
                 tx.setStatus(TransactionStatus.SUCCESS);
                 Transaction finalTx = tx;
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                     @Override
                     public void afterCommit() {
-                        // 🔥 Publish Withdrawal Completed Event to Kafka
+                        //publish Withdrawal Completed Event to Kafka
                         kafkaTemplate.send(
                                 KafkaTopics.WITHDRAWAL_COMPLETED,
                                 finalTx.getId().toString(),

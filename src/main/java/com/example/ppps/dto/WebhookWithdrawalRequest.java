@@ -2,7 +2,6 @@ package com.example.ppps.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
@@ -24,16 +23,10 @@ public class WebhookWithdrawalRequest {
     private BigDecimal amount;
 
     private String bankName;
-
     private String accountNumber;
-
     private String accountName;
-
     private Instant processedAt;
-
     private String failureReason;
-
     private String bankReference;
-
     private Map<String, Object> metadata;
 }

@@ -5,7 +5,6 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -39,7 +38,7 @@ public class Wallet {
     @Column(nullable = false)
     private Instant updatedAt;
 
-    // Default constructor (required by JPA)
+    // default constructor, JPA needs it
     public Wallet() {
         this.balance = BigDecimal.ZERO;
         this.currency = "NGN";

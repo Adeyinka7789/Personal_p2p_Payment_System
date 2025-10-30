@@ -4,7 +4,6 @@ import com.example.ppps.enums.EntryType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -37,10 +36,10 @@ public class LedgerEntry {
 
     private Instant createdAt;
 
-    // ✅ Default constructor for JPA
+    // constructor for JPA
     public LedgerEntry() {}
 
-    // ✅ Custom constructor for convenient instantiation
+    //constructor for easy instantiation
     public LedgerEntry(UUID id, BigDecimal amount, Instant createdAt,
                        EntryType entryType, UUID transactionId, UUID walletId) {
         this.id = id;

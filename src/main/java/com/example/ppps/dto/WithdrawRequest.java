@@ -5,14 +5,12 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-
 import java.math.BigDecimal;
 import java.util.UUID;
 
 @Data
 public class WithdrawRequest {
 
-    // Optional: if null, we infer wallet from authenticated user
     private UUID walletId;
 
     @NotNull(message = "Amount is required")
@@ -25,12 +23,12 @@ public class WithdrawRequest {
     @NotBlank(message = "Account number is required")
     private String accountNumber;
 
-    // Accept both "securePin" and "pin" from JSON
+    // accept both "securePin" and "pin" from JSON
     @JsonProperty(value = "securePin", access = JsonProperty.Access.WRITE_ONLY)
     @NotBlank(message = "PIN is required")
     private String securePin;
 
-    // Allow "pin" as an alias for "securePin"
+    // "pin" as an alias for "securePin"
     @JsonProperty("pin")
     public void setPin(String pin) {
         this.securePin = pin;

@@ -2,7 +2,6 @@ package com.example.ppps.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
@@ -24,7 +23,7 @@ public class WebhookDepositRequest {
     private String currency;
 
     @NotBlank(message = "Status is required")
-    private String status; // SUCCESS, FAILED, PENDING
+    private String status;
 
     private String walletId;
 

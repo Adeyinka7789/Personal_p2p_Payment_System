@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -19,10 +18,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     List<Transaction> findByStatus(TransactionStatus status);
 
-    /**
-     * Find transactions by wallet ID with optional filters.
-     * Fixed: Use COALESCE to provide default values and avoid type inference issues.
-     */
+    // find transactions by wallet ID with optional filters
     @Query("SELECT t FROM Transaction t WHERE " +
             "(t.senderWalletId = :walletId OR t.receiverWalletId = :walletId) " +
             "AND t.initiatedAt >= COALESCE(:startDate, t.initiatedAt) " +
@@ -40,15 +36,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             @Param("maxAmount") BigDecimal maxAmount,
             Pageable pageable);
 
-    /**
-     * Simpler alternative: Find all transactions for a wallet without filters
-     */
+    //find all transactions for a wallet without filters
     @Query("SELECT t FROM Transaction t WHERE t.senderWalletId = :walletId OR t.receiverWalletId = :walletId ORDER BY t.initiatedAt DESC")
     Page<Transaction> findByWalletId(@Param("walletId") UUID walletId, Pageable pageable);
 
-    /**
-     * Find pending transactions initiated before a certain time
-     */
+    //find pending transactions initiated before a certain time
     List<Transaction> findByStatusAndInitiatedAtBefore(
             @Param("status") TransactionStatus status,
             @Param("initiatedAt") Instant initiatedAt

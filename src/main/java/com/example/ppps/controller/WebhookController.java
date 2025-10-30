@@ -19,9 +19,6 @@ public class WebhookController {
 
     private final WebhookService webhookService;
 
-    /**
-     * Webhook endpoint for external payment providers to notify about deposit completion
-     */
     @PostMapping("/deposit")
     public ResponseEntity<Map<String, Object>> handleDepositWebhook(
             @RequestHeader("X-Webhook-Signature") String signature,
@@ -37,7 +34,7 @@ public class WebhookController {
                     "status", "success",
                     "message", "Deposit webhook processed successfully"
             ));
-
+                // note: emojis are intentional windows + .(dot)
         } catch (Exception e) {
             log.error("❌ Deposit webhook processing failed - Reference: {}",
                     request.getExternalReference(), e);
@@ -49,9 +46,6 @@ public class WebhookController {
         }
     }
 
-    /**
-     * Webhook endpoint for bank/processor to notify about withdrawal completion
-     */
     @PostMapping("/withdrawal")
     public ResponseEntity<Map<String, Object>> handleWithdrawalWebhook(
             @RequestHeader("X-Webhook-Signature") String signature,
@@ -79,9 +73,7 @@ public class WebhookController {
         }
     }
 
-    /**
-     * Health check endpoint for webhook providers
-     */
+    //health check for gateway providers
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> healthCheck() {
         return ResponseEntity.ok(Map.of(

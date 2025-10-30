@@ -6,11 +6,9 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import jakarta.persistence.LockModeType;
-
-import java.util.Optional;
 import java.util.UUID;
 
-@Repository  // ADD THIS
+@Repository
 public interface WalletRepository extends JpaRepository<Wallet, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT w FROM Wallet w WHERE w.id = :id")

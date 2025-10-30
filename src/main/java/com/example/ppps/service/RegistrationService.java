@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -33,7 +32,6 @@ public class RegistrationService {
         if (userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
             throw new IllegalStateException("Phone number already registered");
         }
-
         String hashedPin = passwordEncoder.encode(request.getPin());
 
         User user = new User();

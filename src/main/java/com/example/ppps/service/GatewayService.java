@@ -8,7 +8,6 @@ import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
-
 import java.util.Random;
 import java.util.UUID;
 
@@ -28,13 +27,10 @@ public class GatewayService {
         log.info("[{}] 🌍 Initiating gateway call for transaction {}", correlationId, request.getTransactionId());
 
         try {
-            // Simulated delay (1 sec)
+            // simulated delay
             Thread.sleep(1000);
 
-            // Simulated random failure (20% chance)
-            //if (random.nextInt(10) < 2) {
-                //throw new GatewayException("Simulated gateway failure");
-            //}
+            // simulated random failure -- 20% chance
             boolean simulateFailure = false;
             if (simulateFailure && random.nextInt(10) < 2){
                 throw new GatewayException("Simulated Gateway Failure");
@@ -57,7 +53,6 @@ public class GatewayService {
         }
     }
 
-    // inside com.example.ppps.service.GatewayService (add method to existing class)
     @Retry(name = SERVICE_NAME)
     @CircuitBreaker(name = SERVICE_NAME, fallbackMethod = "fallbackWithdrawalResponse")
     public GatewayResponse processWithdrawal(GatewayRequest request) {
@@ -67,8 +62,6 @@ public class GatewayService {
 
         try {
             Thread.sleep(1000);
-
-            // simulate random failure
             if (random.nextInt(10) < 2) {
                 throw new GatewayException("Simulated gateway withdrawal failure");
             }
@@ -89,7 +82,7 @@ public class GatewayService {
         }
     }
 
-    // 🔄 Fallback in case of failure
+    // fallback in case of failure
     public GatewayResponse fallbackResponse(GatewayRequest request, Throwable throwable) {
         String correlationId = MDC.get("correlationId");
 

@@ -4,7 +4,6 @@ import com.example.ppps.enums.TransactionStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;

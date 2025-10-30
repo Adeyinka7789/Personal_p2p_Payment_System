@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Pattern;
 @Data
 public class AuthenticationRequest {
 
-    // FIX: Changed userId to phoneNumber. Users log in with their phone number.
     @NotBlank(message = "Phone number is mandatory for login")
     @Pattern(regexp = "^\\+[1-9]\\d{1,14}$", message = "Invalid phone number format. Must start with '+' and contain 1 to 15 digits.")
     private String phoneNumber;

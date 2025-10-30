@@ -14,7 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
@@ -51,15 +50,11 @@ public class UserController {
     @Autowired
     private EscrowService escrowService;
 
-    /**
-     * Register a new user
-     */
+    //kindly register a new user
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegistrationRequest request) {
         try {
             logger.info("Registration attempt for phone: {}", request.getPhoneNumber());
-
-            // Validate email format if provided
             if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
                 if (!isValidEmail(request.getEmail())) {
                     return ResponseEntity.badRequest()
@@ -89,9 +84,7 @@ public class UserController {
         }
     }
 
-    /**
-     * User login
-     */
+    //kindly allow us to login
     @PostMapping("/auth/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
@@ -130,10 +123,8 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(createErrorResponse("No authentication context"));
         }
-
         String userId = auth.getName();
         logger.info("Fetching user info for: {}", userId);
-
         try {
             Optional<User> userOpt = userRepository.findById(userId);
             if (userOpt.isEmpty()) {
@@ -141,25 +132,21 @@ public class UserController {
                 return ResponseEntity.badRequest()
                         .body(createErrorResponse("User not found"));
             }
-
             User user = userOpt.get();
 
             // Create clean response with email
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
-
             Map<String, Object> userData = new HashMap<>();
             userData.put("id", user.getUserId());
             userData.put("phoneNumber", user.getPhoneNumber());
-            userData.put("email", user.getEmail()); // Include email in response
+            userData.put("email", user.getEmail());
 
             // Add wallet ID if available
             if (user.getWallet() != null) {
                 userData.put("walletId", user.getWallet().getId().toString());
             }
-
             response.put("user", userData);
-
             logger.info("Retrieved user: {}", user.getPhoneNumber());
             return ResponseEntity.ok(response);
 
@@ -170,9 +157,7 @@ public class UserController {
         }
     }
 
-    /**
-     * Get transactions for the authenticated user
-     */
+    // get authenticated user's transactions
     @GetMapping("/transactions")
     public ResponseEntity<?> getTransactions(
             @RequestParam(required = false) Instant startDate,
@@ -200,7 +185,6 @@ public class UserController {
                 return ResponseEntity.badRequest()
                         .body(createErrorResponse("User not found"));
             }
-
             User user = userOpt.get();
             Wallet wallet = user.getWallet();
 
@@ -210,7 +194,7 @@ public class UserController {
                         .body(createErrorResponse("Wallet not found"));
             }
 
-            // Create search filters
+            // let's create search filters
             TransactionSearchRequest filters = new TransactionSearchRequest();
             filters.setStartDate(startDate);
             filters.setEndDate(endDate);
@@ -229,10 +213,10 @@ public class UserController {
                 transactions = List.of();
             }
 
-            // Format transactions for frontend
+            // let's format transactions for frontend
             List<Map<String, Object>> formattedTransactions = transactions.stream()
                     .map(t -> {
-                        // Determine transaction type based on sender/receiver
+                        //let's determine transaction type based on sender/receiver
                         boolean isSender = t.getSenderWalletId() != null &&
                                 t.getSenderWalletId().equals(wallet.getId());
                         String type = isSender ? "P2P_SENT" : "P2P_RECEIVED";
@@ -246,7 +230,6 @@ public class UserController {
                         map.put("narration", isSender ?
                                 "Sent to wallet " + (t.getReceiverWalletId() != null ? t.getReceiverWalletId().toString() : "Unknown") :
                                 "Received from wallet " + (t.getSenderWalletId() != null ? t.getSenderWalletId().toString() : "Unknown"));
-
                         return map;
                     })
                     .collect(Collectors.toList());
@@ -254,14 +237,13 @@ public class UserController {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("transactions", formattedTransactions);
-
             logger.info("Retrieved {} transactions for user: {}",
                     formattedTransactions.size(), userId);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             logger.error("Error retrieving transactions", e);
-            // Return empty transactions instead of error
+            // kindly return empty transactions instead of error
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("transactions", List.of());
@@ -281,9 +263,7 @@ public class UserController {
         return error;
     }
 
-    /**
-     * Reset user PIN
-     */
+    // let's reset our pins
     @PatchMapping("/reset-pin")
     public ResponseEntity<?> resetPin(@RequestBody PinResetRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -297,25 +277,22 @@ public class UserController {
         logger.info("PIN reset attempt for user: {}", userId);
 
         try {
-            // Validate PINs match
+            // do the pins match?
             if (!request.getNewPin().equals(request.getConfirmPin())) {
                 return ResponseEntity.badRequest()
                         .body(createErrorResponse("New PIN and confirm PIN do not match"));
             }
 
-            // Validate new PIN is different from current PIN
+            // is the new  pin different from the old one?
             if (request.getCurrentPin().equals(request.getNewPin())) {
                 return ResponseEntity.badRequest()
                         .body(createErrorResponse("New PIN must be different from current PIN"));
             }
-
-            // Reset PIN
+            // let's reset PIN
             userService.resetPin(userId, request.getCurrentPin(), request.getNewPin());
-
             Map<String, Object> successResponse = new HashMap<>();
             successResponse.put("status", "success");
             successResponse.put("message", "PIN reset successfully");
-
             logger.info("PIN reset successful for user: {}", userId);
             return ResponseEntity.ok(successResponse);
 
@@ -330,9 +307,7 @@ public class UserController {
         }
     }
 
-    /**
-     * Cancel a pending escrow transfer
-     */
+    // let's cancel a pending escrow transfer
     @PostMapping("/transfers/{transactionId}/cancel")
     public ResponseEntity<?> cancelTransfer(@PathVariable UUID transactionId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -345,18 +320,14 @@ public class UserController {
         logger.info("Cancel transfer attempt - Transaction: {}, User: {}", transactionId, userId);
 
         try {
-            // Get user's wallet ID
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
-
             if (user.getWallet() == null) {
                 return ResponseEntity.badRequest()
                         .body(createErrorResponse("User wallet not found"));
             }
 
             UUID senderWalletId = user.getWallet().getId();
-
-            // Cancel the escrow transaction
             escrowService.cancelEscrowTransaction(transactionId, senderWalletId);
 
             Map<String, Object> response = new HashMap<>();

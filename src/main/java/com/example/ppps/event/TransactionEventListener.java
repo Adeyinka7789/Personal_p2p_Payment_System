@@ -12,6 +12,6 @@ public class TransactionEventListener {
 
     @KafkaListener(topics = KafkaTopics.TRANSACTIONS_COMPLETED, groupId = "ppps-group")
     public void handleTransactionEvent(TransactionCompletedEvent event) {
-        log.info("📥 Received Transaction Event: {}", event);
+        log.info("📥 Received Transaction Event: {}", event); // that's it, emoji: windows + .(dot)
     }
 }

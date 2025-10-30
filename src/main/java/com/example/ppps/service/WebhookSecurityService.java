@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -22,9 +21,7 @@ public class WebhookSecurityService {
 
     private static final String HMAC_SHA256 = "HmacSHA256";
 
-    /**
-     * Verify webhook signature to ensure request authenticity
-     */
+    // verify webhook signature to ensure request authenticity
     public void verifySignature(Object request, String signature) {
         if (signature == null || signature.trim().isEmpty()) {
             throw new PppsException(HttpStatus.UNAUTHORIZED, "Missing webhook signature");
@@ -47,9 +44,8 @@ public class WebhookSecurityService {
         }
     }
 
-    /**
-     * Calculate HMAC SHA256 signature for webhook verification
-     */
+    // let's calculate HMAC SHA256 signature for webhook verification
+
     private String calculateSignature(String payload) throws NoSuchAlgorithmException, InvalidKeyException {
         Mac mac = Mac.getInstance(HMAC_SHA256);
         SecretKeySpec secretKeySpec = new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);
@@ -58,15 +54,11 @@ public class WebhookSecurityService {
         return Base64.getEncoder().encodeToString(signatureBytes);
     }
 
-    /**
-     * Validate webhook payload structure
-     */
+    // validate webhook payload structure
     public void validatePayload(Object request) {
-        // Add specific validation logic based on your requirements
         if (request == null) {
             throw new PppsException(HttpStatus.BAD_REQUEST, "Webhook payload cannot be null");
         }
-
         log.debug("✅ Webhook payload validation successful");
     }
 }

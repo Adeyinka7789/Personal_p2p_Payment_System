@@ -49,9 +49,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 String userId = claims.getSubject();
 
-                // ✅ FIX: Extract role from JWT claims
+                //Extract role from JWT claims
                 String role = claims.get("role", String.class);
-                System.out.println("🔐 JWT Role extracted: " + role + " for user: " + userId);
+                System.out.println("JWT Role extracted: " + role + " for user: " + userId);
 
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
@@ -61,10 +61,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 } else {
                     // Default to USER if no role found
                     authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-                    System.out.println("⚠️ No role found in JWT, defaulting to ROLE_USER");
+                    System.out.println("No role found in JWT, defaulting to ROLE_USER");
                 }
 
-                // ✅ Use custom JwtAuthenticationToken
+                // Use custom JwtAuthenticationToken
                 JwtAuthenticationToken authentication =
                         new JwtAuthenticationToken(userId, null, authorities);
 

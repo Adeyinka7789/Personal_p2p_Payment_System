@@ -32,7 +32,7 @@ public class FundingController {
             if (request.getAmount() == null || request.getAmount().signum() <= 0) {
                 return ResponseEntity.badRequest().body("Deposit amount must be greater than zero.");
             }
-
+            // for the emojis here, i used windows + .(dot)
             UUID walletId = request.getWalletId();
             String user = authentication != null ? authentication.getName() : "anonymous";
 

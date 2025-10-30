@@ -25,31 +25,28 @@ public class BalanceController {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
 
-    /**
-     * ✅ Get the logged-in user's wallet balance
-     */
     @GetMapping("/balance")
     public ResponseEntity<?> getBalance(Authentication authentication) {
         try {
-            // Step 1: Get user_id from JWT
+            // get user_id from JWT
             String userId = authentication.getName();
             log.info("Fetching balance for user: {}", userId);
 
-            // Step 2: Find the User in DB
+            //find the User in database
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-            // Step 3: Get Wallet from User
+            // then you get Wallet from User
             Wallet wallet = user.getWallet();
             if (wallet == null) {
                 log.error("User {} has no wallet", userId);
                 return ResponseEntity.badRequest().body(createErrorResponse("User wallet not found"));
             }
 
-            // Step 4: Get balance directly from wallet (avoid service call that might cause issues)
+            // get balance directly from wallet, avoid service all issues
             UUID walletId = wallet.getId();
 
-            // Create response manually to avoid any serialization issues
+            // create response manually to avoid serialization issues
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
 
@@ -59,10 +56,8 @@ public class BalanceController {
             balanceData.put("walletId", walletId.toString());
 
             response.put("balance", balanceData);
-
             log.info("Balance fetched successfully for user {}: {} {}",
                     userId, wallet.getBalance(), wallet.getCurrency());
-
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {

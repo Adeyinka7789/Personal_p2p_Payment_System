@@ -41,7 +41,6 @@ public class AdminApiController {
             dto.put("active", true);
             return dto;
         }).collect(Collectors.toList());
-
         return ResponseEntity.ok(userDtos);
     }
 
@@ -54,16 +53,12 @@ public class AdminApiController {
             dto.put("userId", wallet.getUserId().toString());
             dto.put("balance", wallet.getBalance());
             dto.put("currency", wallet.getCurrency());
-
-            // Get user phone for display
             String userPhone = userRepository.findById(wallet.getUserId().toString())
                     .map(User::getPhoneNumber)
                     .orElse("Unknown");
             dto.put("userPhone", userPhone);
-
             return dto;
         }).collect(Collectors.toList());
-
         return ResponseEntity.ok(walletDtos);
     }
 
@@ -73,58 +68,46 @@ public class AdminApiController {
         List<Map<String, Object>> transactionDtos = transactions.stream().map(transaction -> {
             Map<String, Object> dto = new HashMap<>();
             dto.put("id", transaction.getId());
-
-            // Get sender user info
             String senderUserId = getUserIdFromWallet(transaction.getSenderWalletId());
             String senderPhone = getPhoneFromWallet(transaction.getSenderWalletId());
             dto.put("userId", senderUserId);
             dto.put("userPhone", senderPhone);
-
             dto.put("amount", transaction.getAmount());
             dto.put("status", transaction.getStatus());
             dto.put("type", "TRANSFER");
             dto.put("createdAt", transaction.getInitiatedAt());
-
             return dto;
         }).collect(Collectors.toList());
-
         return ResponseEntity.ok(transactionDtos);
     }
 
     @GetMapping("/withdrawals")
     public ResponseEntity<List<Map<String, Object>>> getWithdrawals(@RequestParam(required = false) String status) {
         List<Transaction> transactions;
-
         if (status != null && !status.isEmpty()) {
             try {
                 TransactionStatus transactionStatus = TransactionStatus.valueOf(status.toUpperCase());
                 transactions = transactionRepository.findByStatus(transactionStatus);
             } catch (IllegalArgumentException e) {
-                // If invalid status, return empty list
+                // If it has an invalid status, return empty list
                 transactions = Collections.emptyList();
             }
         } else {
-            // Get all PENDING transactions for withdrawals view
+            // Get all pending transactions for withdrawals view
             transactions = transactionRepository.findByStatus(TransactionStatus.PENDING);
         }
-
         List<Map<String, Object>> withdrawalDtos = transactions.stream().map(transaction -> {
             Map<String, Object> dto = new HashMap<>();
             dto.put("id", transaction.getId().toString());
-
-            // Get sender user info
             String senderUserId = getUserIdFromWallet(transaction.getSenderWalletId());
             String senderPhone = getPhoneFromWallet(transaction.getSenderWalletId());
             dto.put("userId", senderUserId);
             dto.put("userPhone", senderPhone);
-
             dto.put("amount", transaction.getAmount());
             dto.put("status", transaction.getStatus());
             dto.put("createdAt", transaction.getInitiatedAt());
-
             return dto;
         }).collect(Collectors.toList());
-
         return ResponseEntity.ok(withdrawalDtos);
     }
 
@@ -134,12 +117,10 @@ public class AdminApiController {
             String status = request.get("status");
             Transaction transaction = transactionRepository.findById(UUID.fromString(id))
                     .orElseThrow(() -> new RuntimeException("Transaction not found with id: " + id));
-
-            // Update transaction status
+            // kindly update transaction status, make confusion no dey
             TransactionStatus newStatus = TransactionStatus.valueOf(status.toUpperCase());
             transaction.setStatus(newStatus);
             transactionRepository.save(transaction);
-
             return ResponseEntity.ok(Map.of(
                     "message", "Transaction status updated successfully",
                     "transactionId", id,
@@ -152,10 +133,9 @@ public class AdminApiController {
         }
     }
 
-    // Helper methods to get user info from wallet
+    // H.methods -- get user info from wallet
     private String getUserIdFromWallet(UUID walletId) {
         if (walletId == null) return "Unknown";
-
         Wallet wallet = walletRepository.findById(walletId).orElse(null);
         if (wallet != null) {
             return wallet.getUserId().toString();
@@ -165,7 +145,6 @@ public class AdminApiController {
 
     private String getPhoneFromWallet(UUID walletId) {
         if (walletId == null) return "Unknown";
-
         Wallet wallet = walletRepository.findById(walletId).orElse(null);
         if (wallet != null) {
             User user = userRepository.findById(wallet.getUserId().toString()).orElse(null);

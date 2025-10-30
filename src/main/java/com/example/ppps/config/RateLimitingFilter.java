@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
-    // Increased limit for development - adjust as needed
+    // Increased limit for development purpose
     private static final int MAX_REQUESTS_PER_MINUTE = 1000;
     private final ConcurrentHashMap<String, Integer> requestCounts = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> requestTimestamps = new ConcurrentHashMap<>();
@@ -25,7 +25,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         String requestURI = request.getRequestURI();
 
-        // ✅ SKIP rate limiting for static resources and public pages
+        //let me skip rate limiting for static resources and public pages
         if (shouldSkipRateLimiting(requestURI)) {
             filterChain.doFilter(request, response);
             return;
@@ -35,7 +35,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         long currentTime = System.currentTimeMillis();
         long minuteAgo = currentTime - 60000;
 
-        // Clean up old entries
+        // Clean up the old entries you've got
         requestTimestamps.entrySet().removeIf(entry -> entry.getValue() < minuteAgo);
         requestCounts.entrySet().removeIf(entry -> entry.getValue() == 0);
 
@@ -57,10 +57,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Determines if rate limiting should be skipped for this request.
-     * Returns true for static resources, public pages, and health checks.
-     */
+    //kindly determine if rate limiting shouldbe skipped
     private boolean shouldSkipRateLimiting(String requestURI) {
         return requestURI.startsWith("/users/") ||
                 requestURI.startsWith("/admin/") ||

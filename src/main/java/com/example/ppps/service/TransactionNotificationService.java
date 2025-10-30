@@ -14,29 +14,24 @@ public class TransactionNotificationService {
     @KafkaListener(topics = KafkaTopics.TRANSACTIONS_COMPLETED, groupId = "notification-service")
     public void handleTransactionEvent(TransactionCompletedEvent event) {
         log.info("📩 Received TransactionCompletedEvent: {}", event);
-
-        // Example: send SMS
         sendSms(event);
-
-        // Example: send email
         sendEmail(event);
     }
 
     private void sendSms(TransactionCompletedEvent event) {
-        // Integrate with SMS provider (Twilio, etc.)
+        // please integrate with SMS provider (Twilio etc.)
         log.info("Sending SMS to senderWallet: {}, receiverWallet: {}",
                 event.getSenderWalletId(), event.getReceiverWalletId());
     }
 
     private void sendEmail(TransactionCompletedEvent event) {
-        // Integrate with email service (SendGrid, etc.)
+        // please integrate with email service (SendGrid etc.)
         log.info("Sending Email for transaction: {}", event.getTransactionId());
     }
 
     @KafkaListener(topics = KafkaTopics.WITHDRAWAL_COMPLETED, groupId = "notification-service")
     public void handleWithdrawalEvent(WithdrawalCompletedEvent event) {
         log.info("📩 Notification Service received WithdrawalCompletedEvent: {}", event);
-
         sendSms(event);
         sendEmail(event);
     }
