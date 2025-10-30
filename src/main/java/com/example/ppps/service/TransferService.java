@@ -316,11 +316,16 @@ public class TransferService {
                 logger.info("✅ Gateway response received - Status: {}", gatewayResponse.getStatus());
 
                 // ========================================
-                // 1️⃣1️⃣ Update Transaction Status
-                // ========================================
+// 1️⃣1️⃣ Update Transaction Status
+// ========================================
                 if ("SUCCESS".equalsIgnoreCase(gatewayResponse.getStatus())) {
-                    transaction.setStatus(TransactionStatus.SUCCESS);
-                    logger.info("✅ Transaction marked as SUCCESS");
+                    // ✅ FIX: Don't override escrow status - keep as PENDING for escrow transactions
+                    if (!requiresEscrow) {
+                        transaction.setStatus(TransactionStatus.SUCCESS);
+                        logger.info("✅ Transaction marked as SUCCESS");
+                    } else {
+                        logger.info("⏳ Escrow transaction remains PENDING - will auto-complete in 30 minutes");
+                    }
 
                     // ✅ FIX #2 & #3: Publish to Kafka AFTER transaction commit with proper error handling
                     Transaction finalTransaction = transaction;

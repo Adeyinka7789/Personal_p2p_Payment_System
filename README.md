@@ -463,7 +463,7 @@ Or with Maven:
 mvn spring-boot:run
 ```
 
-The application will start on **http://localhost:8081**
+The application will start on **http://localhost:9090**
 
 ---
 
@@ -525,7 +525,7 @@ services:
       - redis
       - kafka
     ports:
-      - "8081:8081"
+      - "9090:9090"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ppps_db
       SPRING_DATASOURCE_USERNAME: ppps_user
@@ -554,7 +554,7 @@ docker-compose down
 
 ### Base URL
 ```
-http://localhost:8081/api/v1
+http://localhost:9090/api/v1
 ```
 
 ### **Authentication Endpoints**
@@ -770,7 +770,7 @@ Authorization: Bearer {jwt_token}
 
 Access Swagger UI at:
 ```
-http://localhost:8081/swagger-ui.html
+http://localhost:9090/swagger-ui.html
 ```
 
 ---
@@ -1032,12 +1032,12 @@ docker-compose logs -f app | grep "Kafka"
 
 ### **Health Check**
 ```bash
-curl http://localhost:8081/actuator/health
+curl http://localhost:9090/actuator/health
 ```
 
 ### **Prometheus Metrics**
 ```bash
-curl http://localhost:8081/actuator/prometheus
+curl http://localhost:9090/actuator/prometheus
 ```
 
 ### **Kafka Metrics**

@@ -6,14 +6,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class WebController {
 
-    // Serves the main landing page when hitting http://localhost:8081/
+    // Serves the main landing page when hitting http://localhost:9090/
     @GetMapping("/")
     public String index() {
         // Forward to the static HTML file in resources/static/
         return "forward:/users/index.html";
     }
 
-    // Serves the user login page when hitting http://localhost:8081/login
+    // Serves the user login page when hitting http://localhost:9090/login
     @GetMapping("/login")
     public String userLogin() {
         // Forward to static file in resources/static/users/login.html

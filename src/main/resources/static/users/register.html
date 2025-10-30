@@ -248,7 +248,7 @@
         if (window.location.hostname.includes('ngrok-free.app')) {
             return `${window.location.protocol}//${window.location.hostname}/api/v1`;
         } else {
-            return 'http://localhost:8081/api/v1';
+            return 'http://localhost:9090/api/v1';
         }
     };
     const API_BASE = getApiBase();
