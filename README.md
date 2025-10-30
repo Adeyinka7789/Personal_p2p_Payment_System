@@ -1,4 +1,4 @@
-```markdown
+
 # 💰 Personal P2P Payment Service (PPPS)
 
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
@@ -1318,4 +1318,3 @@ For issues, questions, or contributions:
 [View Demo](https://ppps-demo.example.com) • [Report Bug](https://github.com/your-username/ppps/issues) • [Request Feature](https://github.com/your-username/ppps/issues)
 
 </div>
-```
