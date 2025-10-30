@@ -1,3 +1,4 @@
+
 # 💰 Personal P2P Payment Service (PPPS)
 
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
@@ -7,9 +8,9 @@
 [![Kafka](https://img.shields.io/badge/Kafka-3.9-black?logo=apachekafka)](https://kafka.apache.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **Secure, Event-Driven, and Atomic Peer-to-Peer Payments Platform with Real-time Notifications**
+> **Secure, Event-Driven P2P Payments with Escrow Protection & Real-time Notifications**
 
-A production-ready Spring Boot application enabling instant fund transfers between users with guaranteed financial integrity through ACID-compliant transactions, double-entry bookkeeping, and asynchronous event processing via Apache Kafka.
+A production-ready Spring Boot application enabling instant fund transfers between users with **escrow protection for large amounts**, guaranteed financial integrity through ACID-compliant transactions, double-entry bookkeeping, and asynchronous event processing via Apache Kafka.
 
 ---
 
@@ -18,6 +19,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 - [Features](#-features)
 - [Architecture](#-architecture)
 - [Tech Stack](#-tech-stack)
+- [Escrow System](#-escrow-system)
 - [Event-Driven Design](#-event-driven-design)
 - [Getting Started](#-getting-started)
   - [Prerequisites](#prerequisites)
@@ -41,8 +43,17 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 - **Optimistic Locking**: JPA `@Version` for conflict detection
 - **Double-Entry Bookkeeping**: Immutable ledger entries for complete audit trail
 
+### 🛡️ **Escrow Protection System**
+- **Large Amount Protection**: Transfers ≥₦50,000 automatically go to escrow
+- **30-Minute Cancellation Window**: Senders can cancel transactions within 30 minutes
+- **Fee-Only Deduction**: Only transaction fee deducted immediately, principal held
+- **Auto-Completion**: System automatically completes escrow after 30 minutes if not cancelled
+- **Real-time Countdown**: Frontend shows remaining cancellation time
+- **Full Refund**: Both principal and fee refunded on cancellation
+
 ### 💸 **Core Functionality**
 - ✅ **Instant P2P Transfers**: Send money using receiver's phone number
+- ✅ **Escrow Transfers**: Large amounts protected with cancellation window
 - ✅ **Wallet Funding**: Deposit via Paystack, Flutterwave (Card, Bank Transfer, USSD)
 - ✅ **Bank Withdrawals**: Withdraw funds to any Nigerian bank account
 - ✅ **Secure PIN Authentication**: Bcrypt-hashed PIN for transaction authorization
@@ -62,6 +73,88 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 - ⚡ **Redis Caching**: Fast session management and rate limit counters
 - 📊 **Prometheus Metrics**: Production-ready monitoring and observability
 - 🎫 **Kafka Event Streaming**: Reliable message delivery with guaranteed ordering
+
+---
+
+## 🛡️ Escrow System
+
+### **Smart Escrow Protection**
+
+The system automatically protects large transfers (≥₦50,000) with a 30-minute escrow period:
+
+#### **Escrow Flow**
+```
+┌──────────────┐
+│   Sender     │
+└──────┬───────┘
+       │ Send ₦60,000+
+       ▼
+┌─────────────────────┐
+│  Transfer Service   │
+├─────────────────────┤
+│ 1. Detect Amount    │───► ≥₦50,000 → ESCROW
+│ 2. Deduct Fee Only  │───► ₦950 fee deducted
+│ 3. Hold Principal   │───► ₦60,000 held in escrow
+│ 4. Set PENDING      │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│   Transaction       │
+│   Status: PENDING   │
+│   (30-min window)   │
+└──────────┬──────────┘
+           │
+    ┌──────┴──────┐
+    ▼             ▼
+┌─────────┐   ┌─────────┐
+│ Cancel  │   │ Auto-   │
+│ Within  │   │ Complete│
+│ 30 mins │   │ After   │
+└─────────┘   │ 30 mins │
+    │         └─────────┘
+    ▼               ▼
+┌─────────┐     ┌─────────┐
+│ Full    │     │ Principal│
+│ Refund  │     │ Transfer │
+│ (Fee +  │     │ to       │
+│ Principal)│   │ Receiver │
+└─────────┘     └─────────┘
+```
+
+#### **Escrow Scenarios**
+
+**Scenario 1: User Cancels Within 30 Minutes**
+```java
+// User clicks "Cancel" button in dashboard
+escrowService.cancelEscrowTransaction(transactionId, senderWalletId);
+
+// Result:
+// - Status: PENDING → CANCELLED
+// - Balance: +₦60,000 (principal returned) + ₦950 (fee refunded)
+// - Receiver notified: "Transaction cancelled by sender"
+```
+
+**Scenario 2: Auto-Completion After 30 Minutes**
+```java
+// System automatically completes after timeout
+@Scheduled(fixedRate = 60000) // Runs every minute
+public void autoCompletePendingTransactions() {
+    // Find transactions older than 30 minutes
+    completeEscrowTransaction(transaction);
+    
+    // Result:
+    // - Status: PENDING → SUCCESS  
+    // - Balance: Sender -₦60,000, Receiver +₦60,000
+    // - Both parties notified
+}
+```
+
+#### **Frontend Escrow Features**
+- ⏰ **Real-time Countdown Timer**: "Cancel within 25m 30s"
+- 🔴 **Cancel Button**: Only shown for PENDING escrow transactions
+- 📱 **Mobile Responsive**: Works on all devices
+- 🔄 **Auto-Refresh**: Updates status and timers automatically
 
 ---
 
@@ -111,6 +204,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 
 ### **2. P2P Transfer Flow (Money Movement)**
 
+#### **Instant Transfer (<₦50,000)**
 ```
 ┌──────────────┐                           ┌──────────────┐
 │  Sender Wallet│                           │Receiver Wallet│
@@ -141,6 +235,52 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
            ├─────► 📧 SMS to both parties
            ├─────► 📊 Analytics tracking
            └─────► 🔍 Fraud detection check
+```
+
+#### **Escrow Transfer (≥₦50,000)**
+```
+┌──────────────┐                           ┌──────────────┐
+│  Sender Wallet│                           │Receiver Wallet│
+│  (₦100,000)  │                           │  (₦20,000)   │
+└──────┬───────┘                           └──────────────┘
+       │ 1. POST /api/v1/transfers
+       │    {amount: 60000, receiver: "234..."}
+       ▼
+┌─────────────────────┐
+│ Transfer Service    │
+│ @Transactional      │
+├─────────────────────┤
+│ 2. Detect Escrow    │───► Amount ≥₦50,000 → ESCROW
+│ 3. Lock wallets     │
+│ 4. Verify PIN       │
+│ 5. Deduct Fee Only  │──► Sender: ₦100,000 - ₦950 = ₦99,050
+│ 6. Hold Principal   │──► ₦60,000 held (not transferred)
+│ 7. Set PENDING      │
+│ 8. COMMIT           │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  30-Minute Window   │
+│  ┌─────────────────┐│
+│  │  Cancel Button  ││
+│  │  ⏰ 29:45 left  ││
+│  └─────────────────┘│
+└──────────┬──────────┘
+           │
+    ┌──────┴──────┐
+    ▼             ▼
+┌─────────┐   ┌─────────┐
+│ User    │   │ Timeout │
+│ Cancels │   │ (30min) │
+└─────────┘   └─────────┘
+    │             │
+    ▼             ▼
+┌─────────┐   ┌─────────┐
+│ Refund  │   │ Complete│
+│ +₦60,950│   │ Transfer│
+│ CANCELLED│   │ SUCCESS │
+└─────────┘   └─────────┘
 ```
 
 ### **3. Withdrawal Flow (Money Out)**
@@ -192,7 +332,7 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 
 ## 🏗️ Architecture
 
-### **Event-Driven Transfer Flow**
+### **Enhanced Escrow Architecture**
 
 ```
 ┌─────────────┐
@@ -210,15 +350,16 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 │    TransferService          │
 │  @Transactional             │
 ├─────────────────────────────┤
-│ 1. Lock Sender Wallet       │◄───── SELECT FOR UPDATE
-│ 2. Verify Balance           │
-│ 3. Verify PIN               │
-│ 4. Lock Receiver Wallet     │
-│ 5. Debit Sender             │
-│ 6. Credit Receiver          │
-│ 7. Create Transaction       │
-│ 8. Log to Ledger (2x)       │
-│ 9. Commit Transaction       │
+│ 1. Check Amount             │───► ≥₦50,000 → Escrow Flow
+│ 2. Lock Wallets             │
+│ 3. Verify Balance           │
+│ 4. Verify PIN               │
+│ 5. Process Based on Type:   │
+│    • Instant: Full transfer │
+│    • Escrow: Fee only       │
+│ 6. Create Transaction       │
+│ 7. Log to Ledger            │
+│ 8. Commit Transaction       │
 └──────────┬──────────────────┘
            │
            │ afterCommit()
@@ -242,17 +383,36 @@ A production-ready Spring Boot application enabling instant fund transfers betwe
 │         Kafka Consumer Services                  │
 ├──────────────────────────────────────────────────┤
 │  📧 NotificationService                          │
-│     └─ Send SMS (Twilio/Termii)                 │
-│     └─ Send Email (SendGrid/MailGun)            │
-│                                                  │
 │  📊 AnalyticsService                             │
-│     └─ Store Events in Analytics DB              │
-│     └─ Generate Reports & Insights               │
-│                                                  │
 │  🔍 AuditService                                 │
-│     └─ Compliance Logging                        │
-│     └─ Fraud Detection                           │
+│  ⏰ EscrowService (Scheduled)                    │───► Auto-completes escrow
 └──────────────────────────────────────────────────┘
+```
+
+### **Escrow Service Components**
+
+```java
+@Service
+public class EscrowService {
+    
+    // Check if transfer requires escrow
+    public boolean requiresEscrow(BigDecimal amount) {
+        return amount.compareTo(new BigDecimal("50000.00")) >= 0;
+    }
+    
+    // Auto-complete pending transactions every minute
+    @Scheduled(fixedRate = 60000)
+    public void autoCompletePendingTransactions() {
+        // Complete transactions older than 30 minutes
+    }
+    
+    // Cancel escrow transaction
+    public void cancelEscrowTransaction(UUID transactionId, UUID senderWalletId) {
+        // Validate ownership and time window
+        // Update status to CANCELLED
+        // Refund principal + fee
+    }
+}
 ```
 
 ### **System Architecture Diagram**
@@ -643,9 +803,35 @@ Content-Type: application/json
 
 ---
 
+### **Escrow Endpoints** 🔐 *Requires JWT*
+
+#### 4. Cancel Escrow Transaction
+```http
+POST /api/v1/transfers/{transactionId}/cancel
+Authorization: Bearer {jwt_token}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Transfer cancelled successfully"
+}
+```
+
+**Cancellation Flow:**
+1. User clicks cancel button in dashboard
+2. System validates transaction is within 30-minute window
+3. Updates transaction status to CANCELLED
+4. Refunds principal amount + fee to sender
+5. Notifies receiver about cancellation
+6. Updates frontend UI in real-time
+
+---
+
 ### **Funding Endpoints** 🔐 *Requires JWT*
 
-#### 4. Fund Wallet (via Payment Gateway)
+#### 5. Fund Wallet (via Payment Gateway)
 ```http
 POST /api/v1/funding
 Authorization: Bearer {jwt_token}
@@ -680,7 +866,7 @@ Content-Type: application/json
 
 ### **Withdrawal Endpoints** 🔐 *Requires JWT*
 
-#### 5. Withdraw to Bank Account
+#### 6. Withdraw to Bank Account
 ```http
 POST /api/v1/withdrawals
 Authorization: Bearer {jwt_token}
@@ -720,7 +906,7 @@ Content-Type: application/json
 
 ### **Wallet Endpoints** 🔐 *Requires JWT*
 
-#### 6. Check Balance
+#### 7. Check Balance
 ```http
 GET /api/v1/balance
 Authorization: Bearer {jwt_token}
@@ -738,7 +924,7 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-#### 7. Get Transaction History
+#### 8. Get Transaction History
 ```http
 GET /api/v1/transactions/{walletId}?pageNumber=0&pageSize=10
 Authorization: Bearer {jwt_token}
@@ -901,7 +1087,7 @@ if (!signature.equals(computedHash)) {
   "senderWalletId": "UUID",
   "receiverWalletId": "UUID",
   "amount": "BigDecimal",
-  "status": "SUCCESS|FAILED|PENDING",
+  "status": "SUCCESS|FAILED|PENDING|CANCELLED",
   "completedAt": "ISO 8601 Timestamp"
 }
 ```
@@ -958,6 +1144,7 @@ if (!signature.equals(computedHash)) {
 - ✅ **SQL Injection Protection** (JPA Parameterized Queries)
 - ✅ **XSS Protection** (JSON responses only)
 - ✅ **Event Integrity** (Kafka publish only after DB commit)
+- ✅ **Escrow Protection** (Large amount safety with cancellation window)
 
 ### **Environment Variables (Production)**
 
@@ -980,6 +1167,10 @@ SPRING_REDIS_PASSWORD=redis-secure-password
 SPRING_KAFKA_BOOTSTRAP_SERVERS=prod-kafka:9092
 SPRING_KAFKA_PRODUCER_ACKS=all
 SPRING_KAFKA_PRODUCER_RETRIES=3
+
+# Escrow Configuration
+ESCROW_THRESHOLD=50000.00
+ESCROW_TIMEOUT_MINUTES=30
 ```
 
 ---
@@ -1005,6 +1196,21 @@ mvn clean test jacoco:report
 ```
 
 View report at: `target/site/jacoco/index.html`
+
+### **Escrow Testing**
+
+#### Test Escrow Scenarios
+```bash
+# Test escrow creation
+curl -X POST http://localhost:8081/api/v1/transfers \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"receiverPhoneNumber": "2347030834157", "amount": 60000, "securePin": "7789", "narration": "Escrow test"}'
+
+# Test cancellation
+curl -X POST http://localhost:8081/api/v1/transfers/$TRANSACTION_ID/cancel \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ### **Kafka Testing**
 
@@ -1052,6 +1258,7 @@ curl http://localhost:9090/actuator/prometheus
 - Average transfer duration
 - Active user count
 - Kafka events published/consumed
+- Escrow transactions (created/completed/cancelled)
 
 ---
 
@@ -1072,6 +1279,7 @@ We welcome contributions! Please follow these steps:
 - Maintain financial integrity in all transaction logic
 - Document public APIs with JavaDoc
 - Test Kafka event publishing/consuming
+- Test escrow scenarios thoroughly
 
 ---
 
