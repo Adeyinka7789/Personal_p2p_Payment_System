@@ -17,6 +17,8 @@ import java.util.UUID;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
 
+    List<Transaction> findByStatus(TransactionStatus status);
+
     /**
      * Find transactions by wallet ID with optional filters.
      * Fixed: Use COALESCE to provide default values and avoid type inference issues.

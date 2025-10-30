@@ -62,25 +62,22 @@ public class AuthenticationService {
         user.setEmail(request.getEmail() != null && !request.getEmail().trim().isEmpty() ?
                 request.getEmail().trim() : null);
         user.setHashedPin(passwordEncoder.encode(request.getPin()));
+        // Role will default to USER from the entity
 
         // Save user first to generate userId
         User savedUser = userRepository.save(user);
 
         // Create wallet for user with the userId
         Wallet wallet = new Wallet();
-        // DON'T set ID manually - let Hibernate generate it
-        // wallet.setId(UUID.randomUUID()); // REMOVE THIS LINE
         wallet.setUserId(UUID.fromString(savedUser.getUserId()));
         wallet.setBalance(BigDecimal.ZERO);
         wallet.setCurrency("NGN");
-        // createdAt and updatedAt are automatically handled by @CreationTimestamp and @UpdateTimestamp
 
         // Save wallet
         Wallet savedWallet = walletRepository.save(wallet);
 
         // Update user with wallet reference
         savedUser.setWallet(savedWallet);
-        // The wallet reference will be persisted automatically since savedUser is managed
 
         // Generate JWT token
         SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
@@ -88,6 +85,7 @@ public class AuthenticationService {
         String token = Jwts.builder()
                 .setSubject(savedUser.getUserId())
                 .claim("phoneNumber", savedUser.getPhoneNumber())
+                .claim("role", savedUser.getRole().name()) // Include role in token
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(key)
@@ -96,8 +94,10 @@ public class AuthenticationService {
         AuthenticationResponse response = new AuthenticationResponse();
         response.setToken(token);
         response.setUserId(savedUser.getUserId());
+        response.setRole(savedUser.getRole().name()); // Include role in response
         return response;
     }
+
     /**
      * Authenticates a user using their phone number and PIN, and generates a JWT.
      */
@@ -118,6 +118,7 @@ public class AuthenticationService {
         String token = Jwts.builder()
                 .setSubject(user.getUserId())
                 .claim("phoneNumber", user.getPhoneNumber())
+                .claim("role", user.getRole().name()) // Include role in token
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(key)
@@ -126,6 +127,47 @@ public class AuthenticationService {
         AuthenticationResponse response = new AuthenticationResponse();
         response.setToken(token);
         response.setUserId(user.getUserId());
+        response.setRole(user.getRole().name()); // Include role in response
+        return response;
+    }
+
+    /**
+     * NEW: Admin-specific authentication - requires ADMIN role
+     */
+    public AuthenticationResponse authenticateAdmin(String phoneNumber, String pin) {
+        Optional<User> userOptional = userRepository.findByPhoneNumber(phoneNumber);
+
+        User user = userOptional.map(u -> (User) u)
+                .orElseThrow(() -> new SecurityException("Admin user not found: " + phoneNumber));
+
+        // PIN Verification
+        if (!passwordEncoder.matches(pin, user.getHashedPin())) {
+            throw new SecurityException("Invalid PIN for admin: " + phoneNumber);
+        }
+
+        // ADMIN ROLE VERIFICATION - CRITICAL!
+        if (user.getRole() != User.UserRole.ADMIN) {
+            throw new SecurityException("Admin access required. User is not an administrator.");
+        }
+
+        // Generate JWT with admin role
+        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+
+        String token = Jwts.builder()
+                .setSubject(user.getUserId())
+                .claim("phoneNumber", user.getPhoneNumber())
+                .claim("role", user.getRole().name()) // Will be "ADMIN"
+                .claim("isAdmin", true) // Additional admin claim for easy checking
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(key)
+                .compact();
+
+        AuthenticationResponse response = new AuthenticationResponse();
+        response.setToken(token);
+        response.setUserId(user.getUserId());
+        response.setRole(user.getRole().name()); // Will be "ADMIN"
+        response.setAdmin(true); // Set admin flag
         return response;
     }
 }

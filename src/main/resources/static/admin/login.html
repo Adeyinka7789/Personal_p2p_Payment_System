@@ -5,9 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login | PPP Service</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", sans-serif;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f4f8;
+            background-color: #1e293b;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -19,9 +25,9 @@
             background-color: #ffffff;
             padding: 40px;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 380px;
+            max-width: 400px;
             text-align: center;
         }
 
@@ -51,6 +57,7 @@
             border-radius: 8px;
             box-sizing: border-box;
             transition: border-color 0.3s;
+            font-size: 1rem;
         }
 
         input[type="text"]:focus,
@@ -62,17 +69,18 @@
         #login-btn {
             width: 100%;
             padding: 12px;
-            background-color: #3b82f6;
+            background-color: #dc2626;
             color: white;
             border: none;
             border-radius: 8px;
             font-size: 1rem;
             cursor: pointer;
             transition: background-color 0.3s, transform 0.1s;
+            font-weight: bold;
         }
 
         #login-btn:hover {
-            background-color: #2563eb;
+            background-color: #b91c1c;
         }
 
         #login-btn:active {
@@ -81,91 +89,101 @@
 
         #message {
             margin-top: 15px;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             font-weight: bold;
-            color: #ef4444;
-            background-color: #fee2e2;
             display: none;
+        }
+
+        .admin-note {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            color: #92400e;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
 <div class="login-container">
-    <h1>Admin Sign In</h1>
-    <div id="message" style="display: none;"></div>
+    <h1>🔐 Admin Portal</h1>
+    <div class="admin-note">
+        <strong>Admin Access Only</strong> - Use admin credentials
+    </div>
+    <div id="message"></div>
     <form id="login-form">
         <div class="input-group">
-            <label for="phoneNumber">Phone Number</label>
-            <input type="text" id="phoneNumber" name="phoneNumber" required pattern="[0-9]+" title="Enter a valid phone number (digits only)">
+            <label for="phoneNumber">Admin Phone</label>
+            <input type="text" id="phoneNumber" name="phoneNumber" required
+                   placeholder="Enter admin phone number">
         </div>
         <div class="input-group">
-            <label for="pin">PIN</label>
-            <input type="password" id="pin" name="pin" required maxlength="4" pattern="[0-9]{4}" title="PIN must be 4 digits">
+            <label for="pin">Security PIN</label>
+            <input type="password" id="pin" name="pin" required maxlength="6"
+                   placeholder="Enter admin PIN">
         </div>
-        <button type="submit" id="login-btn">Log In</button>
+        <button type="submit" id="login-btn">Access Admin Dashboard</button>
     </form>
 </div>
 
 <script>
     const API_BASE = "http://localhost:9090/api/v1";
-    const TOKEN_KEY = "adminToken"; // Must match the key in script.js
+    const ADMIN_TOKEN_KEY = "adminAuthToken"; // Different key from user token
 
     document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const phoneNumber = document.getElementById('phoneNumber').value;
-        const pin = document.getElementById('pin').value;
+        const phoneNumber = document.getElementById('phoneNumber').value.trim();
+        const pin = document.getElementById('pin').value.trim();
         const messageElement = document.getElementById('message');
 
+        // Clear previous messages
         messageElement.style.display = 'none';
         messageElement.textContent = '';
 
-        // Basic input validation
-        if (phoneNumber.length === 0 || pin.length === 0) {
-             showMessage('Please enter both phone number and PIN.');
-             return;
+        if (!phoneNumber || !pin) {
+            showMessage('Please enter both phone number and PIN.', '#dc2626', '#fecaca');
+            return;
         }
 
         try {
-            const response = await fetch(`${API_BASE}/auth/login`, {
+            const response = await fetch(`${API_BASE}/auth/admin/login`, { // Specific admin endpoint
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phoneNumber, pin })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    phoneNumber,
+                    pin,
+                    role: 'ADMIN' // Explicitly specify admin role
+                })
             });
 
             const data = await response.json();
 
-            if (response.ok) {
-                // Check for the JWT structure
-                if (data && data.token) {
-                    // Success: Save the JWT and redirect to the dashboard
-                    sessionStorage.setItem(TOKEN_KEY, data.token);
-                    showMessage('Login successful! Redirecting...', '#10b981', '#d1fae5');
-                    // Use a slight delay to let the message show before redirecting
-                    setTimeout(() => {
-                        window.location.href = '/admin/index.html';
-                    }, 500);
-                } else {
-                    throw new Error('Login failed: Token not received.');
-                }
+            if (response.ok && data.token) {
+                // Success: Save admin-specific token
+                sessionStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+                sessionStorage.setItem('adminUser', JSON.stringify(data.user));
+
+                showMessage('Admin authentication successful! Redirecting...', '#059669', '#a7f3d0');
+
+                setTimeout(() => {
+                    window.location.href = '/admin/dashboard.html'; // Direct to admin dashboard
+                }, 800);
             } else {
-                // Failure: Display error message from the backend (if available)
-                const errorMsg = data.message || 'Invalid credentials or API error.';
-                showMessage(errorMsg);
+                const errorMsg = data.message || 'Admin access denied. Invalid credentials.';
+                showMessage(errorMsg, '#dc2626', '#fecaca');
             }
         } catch (error) {
-            console.error("Login Error:", error);
-            showMessage('An unexpected error occurred. Check API status.');
+            console.error("Admin Login Error:", error);
+            showMessage('Authentication service unavailable. Please try again.', '#dc2626', '#fecaca');
         }
     });
 
-    /**
-     * Utility function to display messages on the form.
-     * @param {string} text - The message text.
-     * @param {string} textColor - Text color (default: red).
-     * @param {string} bgColor - Background color (default: light red).
-     */
-    function showMessage(text, textColor = '#ef4444', bgColor = '#fee2e2') {
+    function showMessage(text, textColor = '#dc2626', bgColor = '#fecaca') {
         const messageElement = document.getElementById('message');
         messageElement.textContent = text;
         messageElement.style.color = textColor;
@@ -173,10 +191,17 @@
         messageElement.style.display = 'block';
     }
 
-    // Check for logout query parameter
+    // Check for logout parameter
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('logout') === '') {
-        showMessage('You have been successfully logged out.', '#334155', '#e2e8f0');
+    if (urlParams.get('logout') === 'true') {
+        sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+        showMessage('You have been securely logged out.', '#334155', '#e2e8f0');
+    }
+
+    // Auto-redirect if already authenticated
+    const existingToken = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+    if (existingToken) {
+        window.location.href = '/admin/dashboard.html';
     }
 </script>
 </body>

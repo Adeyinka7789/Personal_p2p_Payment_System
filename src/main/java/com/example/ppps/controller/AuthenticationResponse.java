@@ -6,4 +6,6 @@ import lombok.Data;
 public class AuthenticationResponse {
     private String token;
     private String userId;
+    private String role;
+    private boolean isAdmin;
 }

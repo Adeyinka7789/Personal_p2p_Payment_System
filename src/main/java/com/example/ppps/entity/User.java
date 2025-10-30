@@ -25,14 +25,23 @@ public class User {
     @Column(nullable = false, unique = true)
     private String phoneNumber;
 
-    @Column(nullable = true, unique = true) // Make email optional and unique
+    @Column(nullable = true, unique = true)
     private String email;
 
     @Column(nullable = false)
     private String hashedPin;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'USER'")
+    private UserRole role = UserRole.USER; // Default to USER
+
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "wallet_id", referencedColumnName = "id")
-    @JsonIgnore // 🔥 prevents circular serialization
+    @JsonIgnore
     private Wallet wallet;
+
+    public enum UserRole {
+        USER,
+        ADMIN
+    }
 }

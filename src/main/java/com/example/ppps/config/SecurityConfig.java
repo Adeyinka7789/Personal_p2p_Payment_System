@@ -4,6 +4,7 @@ import com.example.ppps.config.JwtAuthenticationFilter;
 import com.example.ppps.config.RateLimitingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -23,6 +24,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableCaching
+@EnableMethodSecurity(prePostEnabled = true) // ✅ ADD THIS LINE - CRITICAL FIX
 public class SecurityConfig {
 
     @Bean
@@ -38,12 +40,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(requests -> requests
                         // Public Pages & Static Assets
                         .requestMatchers("/", "/login", "/register").permitAll()
-                        .requestMatchers("/admin/login").permitAll()
 
                         // Static resources - Allow all (CSS, JS, images, etc.)
                         .requestMatchers(
                                 "/users/**",
-                                "/admin/**",
+                                "/admin/**",  // This covers all admin pages including login.html
                                 "/static/**",
                                 "/css/**",
                                 "/js/**",
@@ -52,22 +53,25 @@ public class SecurityConfig {
                                 "/favicon.ico"
                         ).permitAll()
 
-                        // Public API Endpoints
-                        .requestMatchers("/api/v1/register", "/api/v1/auth/login").permitAll()
+                        // Public API Endpoints - COMBINED AND CLEANED
+                        .requestMatchers(
+                                "/api/v1/register",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/admin/login",  // ADDED HERE
+                                "/api/v1/webhooks/**"
+                        ).permitAll()
 
                         // Other public endpoints/assets
-                        .requestMatchers("/error", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/**").permitAll()
+                        .requestMatchers(
+                                "/error",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/actuator/**"
+                        ).permitAll()
 
-                        // User dashboard: MUST BE PERMIT ALL! The JWT check is done in the browser's JavaScript.
-                        .requestMatchers("/dashboard").permitAll()
-
-                        // Admin dashboard: This is typically protected via session/cookie in a traditional setup,
-                        // but since we are using JWT, we allow all here and protect it client-side as well.
-                        // NOTE: If you plan to protect the admin panel with a server-side session, this needs adjustment.
-                        .requestMatchers("/admin/dashboard").permitAll()
-
-                        // In SecurityConfig.java, add to authorizeHttpRequests:
-                        .requestMatchers("/api/v1/webhooks/**").permitAll()
+                        // Dashboard pages - permit all (JWT handled client-side)
+                        .requestMatchers("/dashboard", "/dashboard/**").permitAll()
+                        .requestMatchers("/admin/dashboard", "/admin/dashboard/**").permitAll()
 
                         // Secured API Endpoints - Require JWT
                         .requestMatchers(
@@ -77,23 +81,23 @@ public class SecurityConfig {
                                 "/api/v1/balance/**",
                                 "/api/v1/transactions/**",
                                 "/api/v1/reset-pin/**",
-                                "/api/v1/user-info" // Assuming you'll add an endpoint to fetch user details
+                                "/api/v1/user-info"
                         ).authenticated()
+
+                        // ✅ FIXED: Use hasRole instead of hasAuthority (automatically adds ROLE_ prefix)
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                         // Any other request must be authenticated
                         .anyRequest().authenticated()
                 )
 
-                // IMPORTANT: Since you are using a stateless JWT setup with AJAX login,
-                // we explicitly disable the formLogin() and logout() built-in features.
+                // Disable form login and use JWT
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
 
-                // Session management policy: Stateless for API access, but IF_REQUIRED
-                // allows Spring to handle requests if needed (e.g., /dashboard).
-                // We keep IF_REQUIRED for now to maintain flexibility, but pure JWT apps often use STATELESS.
+                // Session management
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)  // Changed to STATELESS for pure JWT
                 )
 
                 // Filter chain: Rate Limiting → JWT Authentication → Spring Security

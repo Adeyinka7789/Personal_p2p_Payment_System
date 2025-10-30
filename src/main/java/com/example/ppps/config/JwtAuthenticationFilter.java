@@ -16,7 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -49,18 +49,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 String userId = claims.getSubject();
 
-                // ✅ Default role to prevent 403s
-                List<SimpleGrantedAuthority> authorities =
-                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+                // ✅ FIX: Extract role from JWT claims
+                String role = claims.get("role", String.class);
+                System.out.println("🔐 JWT Role extracted: " + role + " for user: " + userId);
 
-                // ✅ Use custom JwtAuthenticationToken instead of UsernamePasswordAuthenticationToken
+                List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+
+                if (role != null) {
+                    // Add ROLE_ prefix for Spring Security
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                } else {
+                    // Default to USER if no role found
+                    authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+                    System.out.println("⚠️ No role found in JWT, defaulting to ROLE_USER");
+                }
+
+                // ✅ Use custom JwtAuthenticationToken
                 JwtAuthenticationToken authentication =
                         new JwtAuthenticationToken(userId, null, authorities);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
             } catch (Exception e) {
-                System.err.println("JWT Validation Failed: " + e.getMessage());
+                System.err.println("❌ JWT Validation Failed: " + e.getMessage());
                 SecurityContextHolder.clearContext();
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
                 return;
