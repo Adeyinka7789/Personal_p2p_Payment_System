@@ -1,3 +1,5 @@
+// REVIEW: full code review requested
+
 package com.example.ppps.entity;
 
 import com.example.ppps.enums.EntryType;

@@ -1,3 +1,5 @@
+<!-- REVIEW: logging config -->
+
 <configuration>
     <!-- Define a log format including Correlation ID -->
     <property name="LOG_PATTERN"

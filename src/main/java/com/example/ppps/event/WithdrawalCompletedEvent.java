@@ -1,3 +1,5 @@
+// REVIEW: full code review requested
+
 package com.example.ppps.event;
 
 import lombok.AllArgsConstructor;

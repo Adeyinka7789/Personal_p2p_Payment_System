@@ -1,3 +1,5 @@
+// REVIEW: full code review requested
+
 package com.example.ppps.config;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
