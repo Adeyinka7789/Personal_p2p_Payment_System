@@ -78,6 +78,7 @@ public class SecurityConfig {
                                 "/api/v1/reset-pin/**",
                                 "/api/v1/user-info"
                         ).authenticated()
+                        .requestMatchers("/management/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         // every other request must be authenticated
                         .anyRequest().authenticated()
