@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Login | YinksPay Wallet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+        }
+
+        .card-elevated {
+            background: #111111;
+            border: 1px solid #262626;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-elevated::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #404040, transparent);
+        }
+
+        .input-modern {
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            transition: all 0.2s ease;
+        }
+
+        .input-modern:focus {
+            border-color: #666666;
+            background: #1f1f1f;
+            transform: translateY(-1px);
+        }
+
+        .input-error {
+            border-color: #dc2626;
+            background: #1f1a1a;
+        }
+
+        .btn-primary {
+            background: #ffffff;
+            color: #000000;
+            border: none;
+            position: relative;
+            overflow: hidden;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            background: #666666;
+            color: #999999;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            border: 2px solid transparent;
+            border-left-color: currentColor;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .link-underline {
+            position: relative;
+            text-decoration: none;
+        }
+
+        .link-underline::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 1px;
+            bottom: -2px;
+            left: 0;
+            background: #ffffff;
+            transition: width 0.3s ease;
+        }
+
+        .link-underline:hover::after {
+            width: 100%;
+        }
+
+        .floating-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .floating-shapes::before,
+        .floating-shapes::after {
+            content: '';
+            position: absolute;
+            border: 1px solid #262626;
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-shapes::before {
+            width: 200px;
+            height: 200px;
+            top: 10%;
+            right: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-shapes::after {
+            width: 150px;
+            height: 150px;
+            bottom: 20%;
+            left: 5%;
+            animation-delay: 3s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body class="text-white">
+<div class="min-h-screen flex items-center justify-center p-4 relative">
+    <!-- Background Shapes -->
+    <div class="floating-shapes"></div>
+
+    <div class="w-full max-w-sm">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <div class="flex items-center justify-center space-x-3 mb-4">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <span class="text-2xl font-bold">YinksPay</span>
+            </div>
+            <h1 class="text-2xl font-semibold mb-2">Welcome Back</h1>
+            <p class="text-gray-400">Sign in to access your digital wallet</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="card-elevated p-8 rounded-2xl">
+            <form id="loginForm">
+                <div class="mb-6">
+                    <label for="phoneNumber" class="block text-sm font-medium text-gray-300 mb-2">Phone Number</label>
+                    <input
+                            type="tel"
+                            id="phoneNumber"
+                            name="phoneNumber"
+                            required
+                            placeholder="+2348012345678 or 08012345678"
+                            class="input-modern w-full px-4 py-3 rounded-lg focus:outline-none text-white placeholder-gray-500">
+                    <div id="phone-error" class="error-message hidden"></div>
+                    <p class="text-xs text-gray-500 mt-2">Valid Nigerian numbers only (+234, 234, or 0 formats)</p>
+                </div>
+
+                <div class="mb-6">
+                    <label for="pin" class="block text-sm font-medium text-gray-300 mb-2">4-Digit PIN</label>
+                    <input
+                            type="password"
+                            id="pin"
+                            name="pin"
+                            required
+                            pattern="[0-9]{4}"
+                            maxlength="4"
+                            placeholder="••••"
+                            class="input-modern w-full px-4 py-3 rounded-lg focus:outline-none text-white placeholder-gray-500 text-center tracking-widest">
+                    <p class="text-xs text-gray-500 mt-2">Enter your 4-digit security PIN</p>
+                </div>
+
+                <p id="message" class="text-sm mb-4 hidden" role="alert"></p>
+
+                <button
+                        type="submit"
+                        id="loginButton"
+                        class="btn-primary w-full py-3 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
+                    Log In
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-400">
+                    Don't have an account?
+                    <a href="/register" class="link-underline text-white font-medium ml-1">Sign Up</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const getApiBase = () => {
+        if (window.location.hostname.includes('ngrok-free.app')) {
+            return `${window.location.protocol}//${window.location.hostname}/api/v1`;
+        } else {
+            return 'http://localhost:9090/api/v1';
+        }
+    };
+    const API_BASE = getApiBase();
+    const messageElement = document.getElementById('message');
+    const loginButton = document.getElementById('loginButton');
+    const loginForm = document.getElementById('loginForm');
+
+    // Nigerian phone number validation (same as registration)
+    function validateNigerianPhone(phone) {
+        const cleanPhone = phone.replace(/\s/g, '');
+        return /^(\+?234|0)[789][01]\d{8}$/.test(cleanPhone);
+    }
+
+    // Show error message
+    function showError(inputId, message) {
+        const errorElement = document.getElementById(inputId + '-error');
+        const inputElement = document.getElementById(inputId);
+
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+        }
+
+        if (inputElement) {
+            inputElement.classList.add('input-error');
+        }
+    }
+
+    // Clear error message
+    function clearError(inputId) {
+        const errorElement = document.getElementById(inputId + '-error');
+        const inputElement = document.getElementById(inputId);
+
+        if (errorElement) {
+            errorElement.classList.add('hidden');
+        }
+
+        if (inputElement) {
+            inputElement.classList.remove('input-error');
+        }
+    }
+
+    function displayMessage(text, isError = false) {
+        messageElement.textContent = text;
+        messageElement.className = `text-sm mb-4 ${isError ? 'text-red-400' : 'text-green-400'} block`;
+        messageElement.classList.remove('hidden');
+    }
+
+    // Real-time phone validation
+    document.getElementById('phoneNumber').addEventListener('blur', function() {
+        const phone = this.value.trim();
+        if (phone && !validateNigerianPhone(phone)) {
+            showError('phone', 'Invalid Nigerian phone number format. Use +234, 234, or 0 formats.');
+        } else {
+            clearError('phone');
+        }
+    });
+
+    loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const phoneNumber = document.getElementById('phoneNumber').value.trim();
+        const pin = document.getElementById('pin').value.trim();
+
+        // Clear previous errors
+        clearError('phone');
+
+        // Validation
+        if (!validateNigerianPhone(phoneNumber)) {
+            showError('phone', 'Invalid Nigerian phone number format. Use +234, 234, or 0 formats.');
+            return;
+        }
+
+        if (!/^\d{4}$/.test(pin)) {
+            displayMessage('PIN must be exactly 4 digits.', true);
+            return;
+        }
+
+        loginButton.disabled = true;
+        loginButton.innerHTML = '<div class="spinner"></div> Authenticating...';
+        messageElement.classList.add('hidden');
+
+        try {
+            const response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phoneNumber, pin })
+            });
+
+            if (!response.ok) {
+                let errorText = "Login failed. Please check your credentials.";
+                try {
+                    const errorData = await response.json();
+                    errorText = errorData.message || errorText;
+                } catch (e) {
+                    // Ignore JSON parsing error
+                }
+                throw new Error(errorText);
+            }
+
+            const data = await response.json();
+            const jwtToken = data.token;
+            const currentUserId = data.userId;
+
+            // Store JWT and userId in localStorage
+            localStorage.setItem('authToken', jwtToken);
+            localStorage.setItem('userId', currentUserId);
+
+            displayMessage("Login successful! Redirecting...", false);
+
+            // Redirect to dashboard
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 500);
+
+        } catch (error) {
+            console.error("Login Error:", error);
+            displayMessage(error.message || "An unknown error occurred during login.", true);
+
+            // Reset button
+            loginButton.disabled = false;
+            loginButton.textContent = 'Log In';
+        }
+    });
+
+    // Redirect if already logged in
+    window.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('authToken')) {
+            window.location.href = '/dashboard';
+        }
+    });
+</script>
+</body>
+</html>
